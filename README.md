@@ -12,9 +12,9 @@ Realtime web applications are the future. [Broadcastt](https://broadcastt.xyz/) 
 
 This library is compatible with PHP 5.4+
 
-This is an HTTP for Laravel library. If you are looking for a client library or a different server library please check out our [list of libraries](https://broadcastt.xyz/docs/libraries).
+This is a PHP library to interact with the Broadcastt API. If you are looking for a client library or a different server library please check out our [list of libraries](https://broadcastt.xyz/docs/Libraries).
 
-For tutorials and more in-depth documentation, visit our [official site](https://broadcastt.xyz/).
+For tutorials and more in-depth documentation, visit the [official site](https://broadcastt.xyz/).
 
 ## Documentation
 
@@ -34,7 +34,7 @@ $appKey = 'YOUR_APP_KEY';
 $appSecret = 'YOUR_APP_SECRET';
 $appCluster = 'YOUR_APP_CLUSTER';
 
-$broadcaster = new Broadcastt\Broadcastt( $appId, $appKey, $appSecret, $appCluster) );
+$broadcaster = new Broadcastt\Broadcastt( $appId, $appKey, $appSecret, $appCluster );
 ```
 
 
@@ -134,4 +134,4 @@ All request signing is handled automatically.
 
 ## Contributing
 
-We welcome everyone who would help us to make this library "Harder, Better, Faster, Stronger".
+Everyone is welcome who would help to make this library "Harder, Better, Faster, Stronger".
