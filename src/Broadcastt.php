@@ -38,6 +38,11 @@ class Broadcastt implements LoggerAwareInterface
     /**
      * @var string
      */
+    private $appId;
+
+    /**
+     * @var string
+     */
     private $appKey;
 
     /**
@@ -46,22 +51,12 @@ class Broadcastt implements LoggerAwareInterface
     private $appSecret;
 
     /**
-     * @var string
-     */
-    private $appId;
-
-    /**
-     * @var string
-     */
-    private $basePath;
-
-    /**
      * @var string e.g. http or https
      */
     private $scheme;
 
     /**
-     * @var string The host e.g. cluster.broadcasttapp.com. No trailing forward slash
+     * @var string The host e.g. cluster.broadcastt.xyz. No trailing forward slash
      */
     private $host;
 
@@ -69,6 +64,11 @@ class Broadcastt implements LoggerAwareInterface
      * @var int The http port
      */
     private $port;
+
+    /**
+     * @var string
+     */
+    private $basePath;
 
     /**
      * @var int The http timeout
@@ -92,14 +92,14 @@ class Broadcastt implements LoggerAwareInterface
     {
         $this->debug = false;
 
+        $this->appId = $appId;
         $this->appKey = $appKey;
         $this->appSecret = $appSecret;
-        $this->appId = $appId;
-        $this->basePath = '/apps/'.$this->appId;
-        $this->useCluster($appCluster);
 
         $this->scheme = 'http';
+        $this->useCluster($appCluster);
         $this->port = 80;
+        $this->basePath = '/apps/{appId}';
 
         $this->curlOptions = [];
 
@@ -188,6 +188,8 @@ class Broadcastt implements LoggerAwareInterface
      */
     private function createCurl($domain, $path, $requestMethod = 'GET', $queryParams = [])
     {
+        $path = strtr($path, ['{appId}' => $this->appId]);
+
         // Create the signed signature...
         $signedQuery = $this->buildAuthQueryString($this->appSecret, $requestMethod, $path, $queryParams);
 
@@ -263,27 +265,32 @@ class Broadcastt implements LoggerAwareInterface
      * Build the URI.
      *
      * @return string
+     * @throws BroadcasttException
      */
     private function buildUri()
     {
+        if (preg_match('/^http[s]?\:\/\//', $this->host) !== false) {
+            throw new BroadcasttException("Invalid host value. Host must not start with http or https.");
+        }
+
         return $this->scheme.'://'.$this->host.':'.$this->port;
     }
 
     /**
      * Build the required HMAC'd auth string.
      *
-     * @param string $authSecret
      * @param string $requestMethod
      * @param string $requestPath
      * @param array $queryParams [optional]
+     * @param null $time
      *
      * @return string
      */
-    public function buildAuthQueryString($authSecret, $requestMethod, $requestPath, $queryParams = [])
+    public function buildAuthQueryString($requestMethod, $requestPath, $queryParams = [], $time = null)
     {
         $params = [];
         $params['auth_key'] = $this->appKey;
-        $params['auth_timestamp'] = time();
+        $params['auth_timestamp'] = $time ?? time();
         $params['auth_version'] = self::$AUTH_VERSION;
 
         $params = array_merge($params, $queryParams);
@@ -291,7 +298,7 @@ class Broadcastt implements LoggerAwareInterface
 
         $stringToSign = "$requestMethod\n".$requestPath."\n".self::arrayImplode('=', '&', $params);
 
-        $authSignature = hash_hmac('sha256', $stringToSign, $authSecret, false);
+        $authSignature = hash_hmac('sha256', $stringToSign, $this->getAppSecret(), false);
 
         $params['auth_signature'] = $authSignature;
         ksort($params);
@@ -343,7 +350,7 @@ class Broadcastt implements LoggerAwareInterface
      *
      * @return bool|array
      */
-    public function event($channels, $name, $data, $socketId = null, $jsonEncoded = false)
+    public function trigger($channels, $name, $data, $socketId = null, $jsonEncoded = false)
     {
         if (is_string($channels) === true) {
             $channels = [$channels];
@@ -407,7 +414,7 @@ class Broadcastt implements LoggerAwareInterface
      *
      * @return array|bool|string
      */
-    public function eventBatch($batch = [], $encoded = false)
+    public function triggerBatch($batch = [], $encoded = false)
     {
         $queryParams = [];
 
@@ -543,10 +550,13 @@ class Broadcastt implements LoggerAwareInterface
     /**
      * Short way to change `scheme` to `https` and `port` to `443`
      */
-    public function encrypted()
+    public function useTLS()
     {
         $this->scheme = 'https';
-        $this->port = 443;
+
+        if ($this->port === 80) {
+            $this->port = 443;
+        }
     }
 
     /**
@@ -568,6 +578,14 @@ class Broadcastt implements LoggerAwareInterface
     /**
      * @return string
      */
+    public function getAppId()
+    {
+        return $this->appId;
+    }
+
+    /**
+     * @return string
+     */
     public function getAppKey()
     {
         return $this->appKey;
@@ -584,30 +602,6 @@ class Broadcastt implements LoggerAwareInterface
     /**
      * @return string
      */
-    public function getAppId()
-    {
-        return $this->appId;
-    }
-
-    /**
-     * @return string
-     */
-    public function getBasePath()
-    {
-        return $this->basePath;
-    }
-
-    /**
-     * @param string $basePath
-     */
-    public function setBasePath($basePath)
-    {
-        $this->basePath = $basePath;
-    }
-
-    /**
-     * @return string
-     */
     public function getHost()
     {
         return $this->host;
@@ -618,8 +612,6 @@ class Broadcastt implements LoggerAwareInterface
      */
     public function setHost($host)
     {
-        // ensure host doesn't have a scheme prefix
-        $host = preg_replace('/http[s]?\:\/\//', '', $host, 1);
         $this->host = $host;
     }
 
@@ -653,6 +645,22 @@ class Broadcastt implements LoggerAwareInterface
     public function setPort($port)
     {
         $this->port = $port;
+    }
+
+    /**
+     * @return string
+     */
+    public function getBasePath()
+    {
+        return $this->basePath;
+    }
+
+    /**
+     * @param string $basePath
+     */
+    public function setBasePath($basePath)
+    {
+        $this->basePath = $basePath;
     }
 
     /**

@@ -6,13 +6,22 @@
     "keywords": ["broadcastt", "broadcast", "events", "messaging", "publish", "push", "rest", "realtime", "real-time", "real time", "trigger"],
     "license": "MIT",
     "require": {
-        "php": "^7.1",
         "ext-curl": "*",
-        "psr/log": "^1.0"
+        "ext-json": "*",
+        "php": "^7.1",
+        "psr/log": "^1.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^7.5"
     },
     "autoload": {
         "psr-4": {
             "Broadcastt\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
         }
     },
     "config": {
