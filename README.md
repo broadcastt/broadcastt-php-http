@@ -10,7 +10,7 @@ Realtime web applications are the future. [Broadcastt](https://broadcastt.xyz/) 
 >
 > Major version zero (0.y.z) is for initial development. Anything may change at any time. The public API should not be considered stable.
 
-This library is compatible with PHP 5.4+
+This library is compatible with PHP 7.1+
 
 This is a PHP library to interact with the Broadcastt API. If you are looking for a client library or a different server library please check out our [list of libraries](https://broadcastt.xyz/docs/Libraries).
 
