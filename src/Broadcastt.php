@@ -31,11 +31,6 @@ class Broadcastt implements LoggerAwareInterface
     private $curlHandler = null;
 
     /**
-     * @var bool Turns on debugging for all requests
-     */
-    private $debug;
-
-    /**
      * @var string
      */
     private $appId;
@@ -90,8 +85,6 @@ class Broadcastt implements LoggerAwareInterface
      */
     public function __construct($appId, $appKey, $appSecret, $appCluster = 'eu')
     {
-        $this->debug = false;
-
         $this->appId = $appId;
         $this->appKey = $appKey;
         $this->appSecret = $appSecret;
@@ -393,12 +386,8 @@ class Broadcastt implements LoggerAwareInterface
 
         $response = $this->execCurl($ch);
 
-        if ($response['status'] === 200 && $this->debug === false) {
+        if ($response['status'] === 200) {
             return true;
-        }
-
-        if ($this->debug === true) {
-            return $response;
         }
 
         return false;
@@ -443,12 +432,8 @@ class Broadcastt implements LoggerAwareInterface
 
         $response = $this->execCurl($ch);
 
-        if ($response['status'] === 200 && $this->debug === false) {
+        if ($response['status'] === 200) {
             return true;
-        }
-
-        if ($this->debug === true) {
-            return $response;
         }
 
         return false;
@@ -557,22 +542,6 @@ class Broadcastt implements LoggerAwareInterface
         if ($this->port === 80) {
             $this->port = 443;
         }
-    }
-
-    /**
-     * @return bool
-     */
-    public function isDebug()
-    {
-        return $this->debug;
-    }
-
-    /**
-     * @param bool $debug
-     */
-    public function setDebug($debug)
-    {
-        $this->debug = $debug;
     }
 
     /**

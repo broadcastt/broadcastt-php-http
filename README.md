@@ -60,12 +60,6 @@ Default value: `eu`
 
 These values can be modified with setters.
 
-#### `debug` (Boolean)
-
-Turns on debugging for all requests
-
-Default value: `false`
-
 #### `basePath` (String)
 
 The base of the path what the request will call
