@@ -37,7 +37,6 @@ $appCluster = 'YOUR_APP_CLUSTER';
 $broadcaster = new Broadcastt\Broadcastt( $appId, $appKey, $appSecret, $appCluster );
 ```
 
-
 #### `appId` (Integer)
 
 The id of the application
@@ -62,9 +61,9 @@ These values can be modified with setters.
 
 #### `basePath` (String)
 
-The base of the path what the request will call
+The base of the path what the request will call. `{appId}` can be used to automatically parse the app ID in the base path.
 
-Default value: `/apps/{AppId}`
+Default value: `/apps/{appId}`
 
 #### `scheme` (String)
 
@@ -74,7 +73,7 @@ Default value: `http`
 
 #### `host` (String)
 
-The host e.g. cluster.broadcasttapp.com. No trailing forward slash
+The host e.g. cluster.broadcastt.xyz. No trailing forward slash
 
 Default value: `eu.broadcasttapp.xyz` If the cluster is not set during initialization
 
