@@ -78,7 +78,7 @@ class BroadcasttTest extends TestCase
      */
     public function testCanHttpBuildQueryMethodBuildCorrectString($expected, $data)
     {
-        $actual = Broadcastt::arrayImplode('=', '&', $data);
+        $actual = Broadcastt::httpBuildQuery($data);
 
         $this->assertEquals($expected, $actual);
     }

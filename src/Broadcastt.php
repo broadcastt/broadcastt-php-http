@@ -289,32 +289,28 @@ class Broadcastt implements LoggerAwareInterface
         $params = array_merge($params, $queryParams);
         ksort($params);
 
-        $stringToSign = "$requestMethod\n".$requestPath."\n".self::arrayImplode('=', '&', $params);
+        $stringToSign = "$requestMethod\n".$requestPath."\n".self::httpBuildQuery($params);
 
         $authSignature = hash_hmac('sha256', $stringToSign, $this->getAppSecret(), false);
 
         $params['auth_signature'] = $authSignature;
         ksort($params);
 
-        $authQueryString = self::arrayImplode('=', '&', $params);
+        $authQueryString = self::httpBuildQuery($params);
 
         return $authQueryString;
     }
 
     /**
-     * Implode an array with the key and value pair giving
-     * a glue, a separator between pairs and the array
-     * to implode.
+     * Generate URL-encoded query string in which nested elements are represented as comma-separated values.
      *
-     * @param string $glue The glue between key and value
-     * @param string $separator Separator between pairs
      * @param array|string $array The array to implode
      *
      * @return string The imploded array
      */
-    public static function arrayImplode($glue, $separator, $array)
+    public static function httpBuildQuery($array)
     {
-        if (! is_array($array)) {
+        if (!is_array($array)) {
             return $array;
         }
 
@@ -323,10 +319,10 @@ class Broadcastt implements LoggerAwareInterface
             if (is_array($val)) {
                 $val = implode(',', $val);
             }
-            $string[] = "{$key}{$glue}{$val}";
+            $string[] = "{$key}={$val}";
         }
 
-        return implode($separator, $string);
+        return implode('&', $string);
     }
 
     /**
