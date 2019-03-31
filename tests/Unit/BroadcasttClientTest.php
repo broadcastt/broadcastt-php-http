@@ -2,20 +2,23 @@
 
 namespace Tests\Unit;
 
-use Broadcastt\Broadcastt;
+use Broadcastt\BroadcasttClient;
 use Broadcastt\BroadcasttException;
 use PHPUnit\Framework\TestCase;
+use Tests\InvalidDataProviders;
 
-class BroadcasttTest extends TestCase
+class BroadcasttClientTest extends TestCase
 {
+    use InvalidDataProviders;
+
     /**
-     * @var Broadcastt
+     * @var BroadcasttClient
      */
     private $client;
 
     protected function setUp(): void
     {
-        $this->client = new Broadcastt('testid', 'testkey', 'testsecret');
+        $this->client = new BroadcasttClient('testid', 'testkey', 'testsecret');
     }
 
     public function testDefaultValuesAreCorrect()
@@ -52,7 +55,7 @@ class BroadcasttTest extends TestCase
         $this->assertEquals('us.broadcastt.xyz', $this->client->getHost());
     }
 
-    public function arrayImplodeProvider()
+    public function httpBuildQueryProvider()
     {
         return [
             'One Simple Value' => [
@@ -74,107 +77,39 @@ class BroadcasttTest extends TestCase
      * @param $expected
      * @param $data
      *
-     * @dataProvider arrayImplodeProvider
+     * @dataProvider httpBuildQueryProvider
      */
     public function testCanHttpBuildQueryMethodBuildCorrectString($expected, $data)
     {
-        $actual = Broadcastt::httpBuildQuery($data);
+        $actual = BroadcasttClient::httpBuildQuery($data);
 
         $this->assertEquals($expected, $actual);
     }
 
-    public function invalidChannelProvider()
-    {
-        return [
-            'Trailing Colon' => [
-                'test-channel:'
-            ],
-            'Leading Colon' => [
-                ':test-channel'
-            ],
-            'Trailing Colon And New Line' => [
-                "test-channel\n:"
-            ],
-            'Leading Colon And New Line' => [
-                ":\ntest-channel"
-            ],
-        ];
-    }
-
-    public function invalidChannelsProvider()
-    {
-        return [
-            'Array With Invalid Channel Name' => [
-                ['test-channel', 'test-channel:']
-            ],
-        ];
-    }
-
     /**
-     * @param $channel
-     *
-     * @throws BroadcasttException
-     * @dataProvider invalidChannelProvider
-     * @dataProvider invalidChannelsProvider
-     */
-    public function testCanTriggerMethodThrowExceptionForInvalidChannel($channel)
-    {
-        $this->expectException(BroadcasttException::class);
-
-        $this->client->trigger($channel, 'test-event', []);
-    }
-
-    public function invalidSocketIdProvider()
-    {
-        return [
-            'Missing Fraction' => ['1.'],
-            'Missing Whole' => ['.1'],
-            'Trailing Colon' => ['1.1:'],
-            'Leading Colon' => [':1.1'],
-            'Trailing Colon And New Line' => ["1.1\n:"],
-            'Leading Colon And New Line' => [":\n1.1"],
-            'False' => [false],
-            'Empty String' => [''],
-        ];
-    }
-
-    /**
-     * @param $socketId
-     *
-     * @throws BroadcasttException
-     * @dataProvider invalidSocketIdProvider
-     */
-    public function testCanTriggerMethodThrowExceptionForInvalidSocketId($socketId)
-    {
-        $this->expectException(BroadcasttException::class);
-
-        $this->client->trigger('test-channel', 'test-event', [], $socketId);
-    }
-
-    /**
-     * @param $channel
+     * @param $invalidChannel
      *
      * @throws BroadcasttException
      * @dataProvider invalidChannelProvider
      */
-    public function testCanPrivateAuthMethodThrowExceptionForInvalidChannel($channel)
+    public function testCanPrivateAuthMethodThrowExceptionForInvalidChannel($invalidChannel)
     {
         $this->expectException(BroadcasttException::class);
 
-        $this->client->privateAuth($channel, '1.1');
+        $this->client->privateAuth($invalidChannel, '1.1');
     }
 
     /**
-     * @param $socketId
+     * @param $invalidSocketId
      *
      * @throws BroadcasttException
      * @dataProvider invalidSocketIdProvider
      */
-    public function testCanPrivateAuthMethodThrowExceptionForInvalidSocketId($socketId)
+    public function testCanPrivateAuthMethodThrowExceptionForInvalidSocketId($invalidSocketId)
     {
         $this->expectException(BroadcasttException::class);
 
-        $this->client->privateAuth('test-channel', $socketId);
+        $this->client->privateAuth('test-channel', $invalidSocketId);
     }
 
     public function validPrivateAuthDetailsProvider()
@@ -209,29 +144,29 @@ class BroadcasttTest extends TestCase
     }
 
     /**
-     * @param $channel
+     * @param $invalidChannel
      *
      * @throws BroadcasttException
      * @dataProvider invalidChannelProvider
      */
-    public function testCanPresenceAuthMethodThrowExceptionForInvalidChannel($channel)
+    public function testCanPresenceAuthMethodThrowExceptionForInvalidChannel($invalidChannel)
     {
         $this->expectException(BroadcasttException::class);
 
-        $this->client->presenceAuth($channel, '1.1', 'id');
+        $this->client->presenceAuth($invalidChannel, '1.1', 'id');
     }
 
     /**
-     * @param $socketId
+     * @param $invalidSocketId
      *
      * @throws BroadcasttException
      * @dataProvider invalidSocketIdProvider
      */
-    public function testCanPresenceAuthMethodThrowExceptionForInvalidSocketId($socketId)
+    public function testCanPresenceAuthMethodThrowExceptionForInvalidSocketId($invalidSocketId)
     {
         $this->expectException(BroadcasttException::class);
 
-        $this->client->presenceAuth('test-channel', $socketId, 'id');
+        $this->client->presenceAuth('test-channel', $invalidSocketId, 'id');
     }
 
     public function validPresenceAuthDetailsProvider()

@@ -89,11 +89,11 @@ The http timeout
 
 Default value: `30`
 
-#### `curlOptions` (Mixed[])
+#### `guzzleClient` (Mixed[])
 
-Options for the curl instance
+Guzzle Client for sending HTTP requests
 
-Default value: `[]`
+If not set it will be initialized without any parameters on the first request
 
 ### Helpers
 

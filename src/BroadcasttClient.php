@@ -2,11 +2,18 @@
 
 namespace Broadcastt;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
+use function GuzzleHttp\Psr7\stream_for;
+use Psr\Http\Message\RequestInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LogLevel;
 
-class Broadcastt implements LoggerAwareInterface
+class BroadcasttClient implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
@@ -26,9 +33,9 @@ class Broadcastt implements LoggerAwareInterface
     private static $SLD = '.broadcastt.xyz';
 
     /**
-     * @var null|resource
+     * @var null|ClientInterface
      */
-    private $curlHandler = null;
+    private $guzzleClient = null;
 
     /**
      * @var string
@@ -71,11 +78,6 @@ class Broadcastt implements LoggerAwareInterface
     private $timeout;
 
     /**
-     * @var array
-     */
-    private $curlOptions;
-
-    /**
      * Initializes a new Broadcastt instance with key, secret and ID of an app.
      *
      * @param int $appId Id of your application
@@ -94,8 +96,6 @@ class Broadcastt implements LoggerAwareInterface
         $this->port = 80;
         $this->basePath = '/apps/{appId}';
 
-        $this->curlOptions = [];
-
         $this->timeout = 30;
     }
 
@@ -103,7 +103,7 @@ class Broadcastt implements LoggerAwareInterface
      * Log a string.
      *
      * @param string $msg The message to log
-     * @param array|\Exception $context [optional] Any extraneous information that does not fit well in a string.
+     * @param array $context [optional] Any extraneous information that does not fit well in a string.
      * @param string $level [optional] Importance of log message, highly recommended to use Psr\Log\LogLevel::{level}
      *
      * @return void
@@ -122,9 +122,8 @@ class Broadcastt implements LoggerAwareInterface
      *
      * @param string[] $channels An array of channel names to validate
      *
-     * @throws BroadcasttException If $channels is too big or any channel is invalid
-     *
      * @return void
+     * @throws BroadcasttException If $channels is too big or any channel is invalid
      */
     private function validateChannels($channels)
     {
@@ -142,14 +141,13 @@ class Broadcastt implements LoggerAwareInterface
      *
      * @param string $channel The channel name to validate
      *
-     * @throws BroadcasttException If $channel is invalid
-     *
      * @return void
+     * @throws BroadcasttException If $channel is invalid
      */
     private function validateChannel($channel)
     {
-        if (! preg_match('/\A[-a-zA-Z0-9_=@,.;]+\z/', $channel)) {
-            throw new BroadcasttException('Invalid channel name '.$channel);
+        if (!preg_match('/\A[-a-zA-Z0-9_=@,.;]+\z/', $channel)) {
+            throw new BroadcasttException('Invalid channel name ' . $channel);
         }
     }
 
@@ -162,94 +160,66 @@ class Broadcastt implements LoggerAwareInterface
      */
     private function validateSocketId($socketId)
     {
-        if ($socketId !== null && ! preg_match('/\A\d+\.\d+\z/', $socketId)) {
-            throw new BroadcasttException('Invalid socket ID '.$socketId);
+        if ($socketId !== null && !preg_match('/\A\d+\.\d+\z/', $socketId)) {
+            throw new BroadcasttException('Invalid socket ID ' . $socketId);
         }
     }
 
     /**
-     * Utility function used to create the curl object with common settings.
+     * Utility function used to build a request instance.
      *
      * @param string $domain
      * @param string $path
      * @param string $requestMethod
      * @param array $queryParams
      *
-     * @throws BroadcasttException Throws exception if curl wasn't initialized correctly
-     *
-     * @return resource
+     * @return Request
      */
-    private function createCurl($domain, $path, $requestMethod = 'GET', $queryParams = [])
+    private function buildRequest($domain, $path, $requestMethod = 'GET', $queryParams = [])
     {
         $path = strtr($path, ['{appId}' => $this->appId]);
 
         // Create the signed signature...
-        $signedQuery = $this->buildAuthQueryString($this->appSecret, $requestMethod, $path, $queryParams);
+        $signedQuery = $this->buildAuthQueryString($requestMethod, $path, $queryParams);
 
-        $uri = $domain.$path.'?'.$signedQuery;
+        $uri = $domain . $path . '?' . $signedQuery;
 
-        $this->log('create_curl( {uri} )', ['uri' => $uri]);
+        $this->log('buildRequest uri: {uri}', ['uri' => $uri]);
 
-        // Create or reuse existing curl handle
-        if (! is_resource($this->curlHandler)) {
-            $this->curlHandler = curl_init();
-        }
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Expect' => '',
+            'X-Library' => 'broadcastt-php ' . self::$VERSION,
+        ];
 
-        if ($this->curlHandler === false) {
-            throw new BroadcasttException('Could not initialise cURL!');
-        }
-
-        $ch = $this->curlHandler;
-
-        // curl handle is not reusable unless reset
-        if (function_exists('curl_reset')) {
-            curl_reset($ch);
-        }
-
-        // Set cURL opts and execute request
-        curl_setopt($ch, CURLOPT_URL, $uri);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'Expect:',
-            'X-Library: broadcastt-php '.self::$VERSION,
-        ]);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
-        if ($requestMethod === 'POST') {
-            curl_setopt($ch, CURLOPT_POST, 1);
-        } elseif ($requestMethod === 'GET') {
-            curl_setopt($ch, CURLOPT_POST, 0);
-        } // Otherwise let the user configure it
-
-        // Set custom curl options
-        if (! empty($this->curlOptions)) {
-            foreach ($this->curlOptions as $option => $value) {
-                curl_setopt($ch, $option, $value);
-            }
-        }
-
-        return $ch;
+        return new Request($requestMethod, $uri, $headers);
     }
 
     /**
-     * Utility function to execute curl and create capture response information.
+     * Utility function to send a request and capture response information.
      *
-     * @param $ch resource
+     * @param RequestInterface $request
      *
-     * @return array
+     * @return Response
+     * @throws GuzzleException
      */
-    private function execCurl($ch)
+    private function sendRequest($request)
     {
-        $response = [];
-
-        $response['body'] = curl_exec($ch);
-        $response['status'] = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-        if ($response['body'] === false || $response['status'] < 200 || 400 <= $response['status']) {
-            $this->log('exec_curl error: {error}', ['error' => curl_error($ch)], LogLevel::ERROR);
+        if ($this->guzzleClient === null) {
+            $this->guzzleClient = new Client();
         }
 
-        $this->log('exec_curl response: {response}', ['response' => print_r($response, true)]);
+        $this->log('sendRequest request: {request}', ['request' => $request]);
+
+        try {
+            $response = $this->guzzleClient->send($request);
+        } catch (GuzzleException $exception) {
+            $this->log('sendRequest error: {exception}', ['exception' => $exception], LogLevel::ERROR);
+
+            throw $exception;
+        }
+
+        $this->log('sendRequest response: {response}', ['response' => $response]);
 
         return $response;
     }
@@ -262,11 +232,22 @@ class Broadcastt implements LoggerAwareInterface
      */
     private function buildUri()
     {
-        if (preg_match('/^http[s]?\:\/\//', $this->host) !== false) {
+        if (preg_match('/^http[s]?\:\/\//', $this->host) !== 0) {
             throw new BroadcasttException("Invalid host value. Host must not start with http or https.");
         }
 
-        return $this->scheme.'://'.$this->host.':'.$this->port;
+        return $this->scheme . '://' . $this->host . ':' . $this->port;
+    }
+
+    /**
+     * Check if the status code indicates the request was successful.
+     *
+     * @param $status
+     * @return bool
+     */
+    private function isSuccessStatusCode($status)
+    {
+        return 2 === (int)floor($status / 100);
     }
 
     /**
@@ -289,7 +270,7 @@ class Broadcastt implements LoggerAwareInterface
         $params = array_merge($params, $queryParams);
         ksort($params);
 
-        $stringToSign = "$requestMethod\n".$requestPath."\n".self::httpBuildQuery($params);
+        $stringToSign = "$requestMethod\n" . $requestPath . "\n" . self::httpBuildQuery($params);
 
         $authSignature = hash_hmac('sha256', $stringToSign, $this->getAppSecret(), false);
 
@@ -335,9 +316,9 @@ class Broadcastt implements LoggerAwareInterface
      * @param string|null $socketId [optional]
      * @param bool $jsonEncoded [optional]
      *
-     * @throws BroadcasttException Throws exception if $channels is an array of size 101 or above or $socketId is invalid
-     *
-     * @return bool|array
+     * @return bool
+     * @throws BroadcasttException Throws exception if $channels is an array of size 101 or above or $socketId is
+     * invalid
      */
     public function trigger($channels, $name, $data, $socketId = null, $jsonEncoded = false)
     {
@@ -348,121 +329,112 @@ class Broadcastt implements LoggerAwareInterface
         $this->validateChannels($channels);
         $this->validateSocketId($socketId);
 
-        $queryParams = [];
+        if (!$jsonEncoded) {
+            $data = json_encode($data);
 
-        $path = $this->basePath.'/event';
-
-        $dataEncoded = $jsonEncoded ? $data : json_encode($data);
-
-        // json_encode might return false on failure
-        if (! $dataEncoded) {
-            $this->log('Failed to perform json_encode on the the provided data: {error}', [
-                'error' => print_r($data, true),
-            ], LogLevel::ERROR);
+            // json_encode might return false on failure
+            if (!$data) {
+                $this->log('Failed to perform json_encode on the the provided data: {error}', [
+                    'error' => $data,
+                ], LogLevel::ERROR);
+            }
         }
 
         $postParams = [];
         $postParams['name'] = $name;
-        $postParams['data'] = $dataEncoded;
+        $postParams['data'] = $data;
         $postParams['channels'] = $channels;
 
         if ($socketId !== null) {
             $postParams['socket_id'] = $socketId;
         }
 
-        $postValue = json_encode($postParams);
+        try {
+            $response = $this->post('/event', [], $postParams);
 
-        $queryParams['body_md5'] = md5($postValue);
-
-        $ch = $this->createCurl($this->buildUri(), $path, 'POST', $queryParams);
-
-        $this->log('trigger POST: {postValue}', ['postValue' => $postValue]);
-
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $postValue);
-
-        $response = $this->execCurl($ch);
-
-        if ($response['status'] === 200) {
-            return true;
+            return $this->isSuccessStatusCode($response->getStatusCode());
+        } catch (GuzzleException $e) {
+            return false;
         }
-
-        return false;
     }
 
     /**
      * Trigger multiple events at the same time.
      *
      * @param array $batch [optional] An array of events to send
-     * @param bool $encoded [optional] Defines if the data is already encoded
+     * @param bool $jsonEncoded [optional] Defines if the data is already encoded
      *
+     * @return bool
      * @throws BroadcasttException Throws exception if curl wasn't initialized correctly
-     *
-     * @return array|bool|string
      */
-    public function triggerBatch($batch = [], $encoded = false)
+    public function triggerBatch($batch = [], $jsonEncoded = false)
     {
-        $queryParams = [];
+        foreach ($batch as $key => $event) {
+            $this->validateChannel($event['channel']);
+            $this->validateSocketId($event['socket_id'] ?? null);
 
-        $path = $this->basePath.'/events';
-
-        if (! $encoded) {
-            foreach ($batch as $key => $event) {
-                if (! is_string($event['data'])) {
-                    $batch[$key]['data'] = json_encode($event['data']);
-                }
+            if (!$jsonEncoded) {
+                $batch[$key]['data'] = json_encode($event['data']);
             }
         }
 
         $postParams = [];
         $postParams['batch'] = $batch;
 
+
+        try {
+            $response = $this->post('/events', [], $postParams);
+
+            return $this->isSuccessStatusCode($response->getStatusCode());
+        } catch (GuzzleException $e) {
+            return false;
+        }
+    }
+
+    /**
+     * POST arbitrary REST API resource using a synchronous http client.
+     * All request signing is handled automatically.
+     *
+     * @param string $path Path excluding /apps/{appId}
+     * @param array $queryParams API query params (see https://broadcastt.xyz/docs/References-‐-Rest-API)
+     * @param array $postParams API post params (see https://broadcastt.xyz/docs/References-‐-Rest-API)
+     *
+     * @return Response
+     * @throws BroadcasttException
+     * @throws GuzzleException
+     */
+    private function post($path, $queryParams = [], $postParams = [])
+    {
+        $path = $this->basePath . $path;
+
         $postValue = json_encode($postParams);
 
         $queryParams['body_md5'] = md5($postValue);
 
-        $ch = $this->createCurl($this->buildUri(), $path, 'POST', $queryParams);
+        $request = $this->buildRequest($this->buildUri(), $path, 'POST', $queryParams)
+            ->withBody(stream_for($postValue));
 
-        $this->log('trigger POST: {postValue}', ['postValue' => $postValue]);
-
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $postValue);
-
-        $response = $this->execCurl($ch);
-
-        if ($response['status'] === 200) {
-            return true;
-        }
-
-        return false;
+        return $this->sendRequest($request);
     }
 
     /**
      * GET arbitrary REST API resource using a synchronous http client.
      * All request signing is handled automatically.
      *
-     * @param string $path Path excluding /apps/APP_ID
-     * @param array $params API params (see https://broadcastt.xyz/docs/References-‐-Rest-API)
+     * @param string $path Path excluding /apps/{appId}
+     * @param array $queryParams API query params (see https://broadcastt.xyz/docs/References-‐-Rest-API)
      *
+     * @return Response See Broadcastt API docs
+     * @throws GuzzleException
      * @throws BroadcasttException Throws exception if curl wasn't initialized correctly
-     *
-     * @return array|bool See Broadcastt API docs
      */
-    public function get($path, $params = [])
+    public function get($path, $queryParams = [])
     {
-        if (substr($path, 0, strlen($this->basePath)) === $this->basePath) {
-            $path = $this->basePath.$path;
-        }
+        $path = $this->basePath . $path;
 
-        $ch = $this->createCurl($this->buildUri(), $path, 'GET', $params);
+        $ch = $this->buildRequest($this->buildUri(), $path, 'GET', $queryParams);
 
-        $response = $this->execCurl($ch);
-
-        if ($response['status'] === 200) {
-            $response['result'] = json_decode($response['body'], true);
-
-            return $response;
-        }
-
-        return false;
+        return $this->sendRequest($ch);
     }
 
     /**
@@ -472,9 +444,8 @@ class Broadcastt implements LoggerAwareInterface
      * @param string $socketId
      * @param string $customData
      *
-     * @throws BroadcasttException Throws exception if $channel is invalid or above or $socketId is invalid
-     *
      * @return string Json encoded authentication string.
+     * @throws BroadcasttException Throws exception if $channel is invalid or above or $socketId is invalid
      */
     public function privateAuth($channel, $socketId, $customData = null)
     {
@@ -482,12 +453,12 @@ class Broadcastt implements LoggerAwareInterface
         $this->validateSocketId($socketId);
 
         if ($customData) {
-            $signature = hash_hmac('sha256', $socketId.':'.$channel.':'.$customData, $this->appSecret, false);
+            $signature = hash_hmac('sha256', $socketId . ':' . $channel . ':' . $customData, $this->appSecret, false);
         } else {
-            $signature = hash_hmac('sha256', $socketId.':'.$channel, $this->appSecret, false);
+            $signature = hash_hmac('sha256', $socketId . ':' . $channel, $this->appSecret, false);
         }
 
-        $signature = ['auth' => $this->appKey.':'.$signature];
+        $signature = ['auth' => $this->appKey . ':' . $signature];
         // add the custom data if it has been supplied
         if ($customData) {
             $signature['channel_data'] = $customData;
@@ -504,9 +475,8 @@ class Broadcastt implements LoggerAwareInterface
      * @param string $userId
      * @param mixed $userInfo
      *
-     * @throws BroadcasttException Throws exception if $channel is invalid or above or $socketId is invalid
-     *
      * @return string
+     * @throws BroadcasttException Throws exception if $channel is invalid or above or $socketId is invalid
      */
     public function presenceAuth($channel, $socketId, $userId, $userInfo = null)
     {
@@ -525,7 +495,7 @@ class Broadcastt implements LoggerAwareInterface
      */
     public function useCluster($cluster)
     {
-        $this->host = $cluster.self::$SLD;
+        $this->host = $cluster . self::$SLD;
     }
 
     /**
@@ -538,6 +508,22 @@ class Broadcastt implements LoggerAwareInterface
         if ($this->port === 80) {
             $this->port = 443;
         }
+    }
+
+    /**
+     * @return ClientInterface|null
+     */
+    public function getGuzzleClient(): ?ClientInterface
+    {
+        return $this->guzzleClient;
+    }
+
+    /**
+     * @param ClientInterface|null $guzzleClient
+     */
+    public function setGuzzleClient(?ClientInterface $guzzleClient): void
+    {
+        $this->guzzleClient = $guzzleClient;
     }
 
     /**
@@ -642,22 +628,6 @@ class Broadcastt implements LoggerAwareInterface
     public function setTimeout($timeout)
     {
         $this->timeout = $timeout;
-    }
-
-    /**
-     * @return array
-     */
-    public function getCurlOptions()
-    {
-        return $this->curlOptions;
-    }
-
-    /**
-     * @param array $curlOptions
-     */
-    public function setCurlOptions(array $curlOptions)
-    {
-        $this->curlOptions = $curlOptions;
     }
 
 }

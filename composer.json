@@ -6,8 +6,8 @@
     "keywords": ["broadcastt", "broadcast", "events", "messaging", "publish", "push", "rest", "realtime", "real-time", "real time", "trigger"],
     "license": "MIT",
     "require": {
-        "ext-curl": "*",
         "ext-json": "*",
+        "guzzlehttp/guzzle": "^6.3",
         "php": "^7.1",
         "psr/log": "^1.1"
     },
