@@ -18,6 +18,13 @@ For tutorials and more in-depth documentation, visit the [official site](https:/
 
 ## Documentation
 
+* [First steps](#first-steps)
+* [Configuration](#configuration)
+* [Modifiers](#modifiers)
+* [Helpers](#helpers)
+* [Usage](#usage)
+* [Contributing](#contributing)
+
 ### First steps
 
 Require this package, with [Composer](https://getcomposer.org/)
@@ -34,7 +41,9 @@ $appKey = 'YOUR_APP_KEY';
 $appSecret = 'YOUR_APP_SECRET';
 $appCluster = 'YOUR_APP_CLUSTER';
 
-$broadcaster = new Broadcastt\Broadcastt( $appId, $appKey, $appSecret, $appCluster );
+$client = new Broadcastt\BroadcasttClient( $appId, $appKey, $appSecret, $appCluster );
+// or
+$client = Broadcastt\BroadcasttClient::fromUri("http://{$appKey}:{$appSecret}@{$appCluster}.broadcastt.xyz/apps/{$appId}");
 ```
 
 #### `appId` (Integer)
@@ -97,6 +106,10 @@ If not set it will be initialized without any parameters on the first request
 
 ### Helpers
 
+#### `fromUri($uri)`
+
+Instantiate a new client from the given uri.
+
 These are methods which help you modify the instance
 
 #### `useCluster($cluster)`
@@ -109,13 +122,13 @@ Short way to change `scheme` to `https` and `port` to `443`
 
 ### Usage
 
-#### `event($channels, $name, $data, $socketId = null, $jsonEncoded = false)`
+#### `trigger($channels, $name, $data, $socketId = null, $jsonEncoded = false)`
 
 Trigger an event by providing event name and payload.
 
 Optionally provide a socket ID to exclude a client (most likely the sender).
 
-#### `eventBatch($batch = [], $encoded = false)`
+#### `triggerBatch($batch = [], $encoded = false)`
 
 Trigger multiple events at the same time.
 
