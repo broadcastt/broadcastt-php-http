@@ -24,6 +24,8 @@ class BroadcasttClientTest extends TestCase
 
     public function testDefaultValuesAreCorrect()
     {
+        $this->assertNull($this->client->getGuzzleClient());
+
         $this->assertEquals('http', $this->client->getScheme());
         $this->assertEquals('eu.broadcastt.xyz', $this->client->getHost());
         $this->assertEquals(80, $this->client->getPort());
