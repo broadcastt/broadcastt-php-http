@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use Broadcastt\BroadcasttClient;
 use Broadcastt\BroadcasttException;
+use GuzzleHttp\Psr7\Uri;
 use PHPUnit\Framework\TestCase;
 use Tests\InvalidDataProviders;
 
@@ -29,6 +30,58 @@ class BroadcasttClientTest extends TestCase
         $this->assertEquals('/apps/{appId}', $this->client->getBasePath());
 
         $this->assertEquals(30, $this->client->getTimeout());
+    }
+
+    /**
+     * @throws BroadcasttException
+     */
+    public function testCanCreateClientInstanceFromUri()
+    {
+        $client = BroadcasttClient::fromUri('https://testkey:testsecret@testhost.xyz:8080/apps/111');
+
+        $this->assertEquals('https', $client->getScheme());
+        $this->assertEquals('testhost.xyz', $client->getHost());
+        $this->assertEquals(8080, $client->getPort());
+        $this->assertEquals('111', $client->getAppId());
+        $this->assertEquals('testkey', $client->getAppKey());
+        $this->assertEquals('testsecret', $client->getAppSecret());
+    }
+
+    /**
+     * @throws BroadcasttException
+     */
+    public function testCanCreateClientInstanceFromUriInstance()
+    {
+        $client = BroadcasttClient::fromUri(new Uri('https://testkey:testsecret@testhost.xyz:8080/apps/111'));
+
+        $this->assertEquals('https', $client->getScheme());
+        $this->assertEquals('testhost.xyz', $client->getHost());
+        $this->assertEquals(8080, $client->getPort());
+        $this->assertEquals('111', $client->getAppId());
+        $this->assertEquals('testkey', $client->getAppKey());
+        $this->assertEquals('testsecret', $client->getAppSecret());
+    }
+
+    public function invalidUriProvider()
+    {
+        return [
+            'Invalid Path' => ['https://testkey:testsecret@testhost.xyz/invalid-path'],
+            'Invalid App Id' => ['https://testkey:testsecret@testhost.xyz/apps/invalid-id'],
+            'Without User Info' => ['https://testhost.xyz/apps/111'],
+            'Empty User Info' => ['https://@testhost.xyz/apps/111'],
+            'Missing Secret' => ['https://testkey@testhost.xyz/apps/111'],
+        ];
+    }
+
+    /**
+     * @throws BroadcasttException
+     * @dataProvider invalidUriProvider
+     */
+    public function testCanNotCreateClientInstanceFromInvalidUri($uri)
+    {
+        $this->expectException(BroadcasttException::class);
+
+        BroadcasttClient::fromUri($uri);
     }
 
     public function testCanUseTLSChangeSchemeAndDefaultPort()

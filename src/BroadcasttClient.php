@@ -8,7 +8,9 @@ use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use function GuzzleHttp\Psr7\stream_for;
+use GuzzleHttp\Psr7\Uri;
 use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\UriInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LogLevel;
@@ -97,6 +99,46 @@ class BroadcasttClient implements LoggerAwareInterface
         $this->basePath = '/apps/{appId}';
 
         $this->timeout = 30;
+    }
+
+    /**
+     * Clients can be instantiated from a URI. For example: "http://key:secret@eu.broadcastt.com/apps/{appId}"
+     *
+     * @param string|UriInterface $uri
+     * @return BroadcasttClient
+     * @throws BroadcasttException
+     */
+    public static function fromUri($uri)
+    {
+        if (!($uri instanceof UriInterface)) {
+            $uri = new Uri($uri);
+        }
+
+        preg_match('#^/apps/(\d+)$#', $uri->getPath(), $matches);
+        if (count($matches) !== 2) {
+            throw new BroadcasttException('App ID not found in URI');
+        }
+
+        $appId = $matches[1];
+
+        if (!$uri->getUserInfo()) {
+            throw new BroadcasttException('User info is missing from URI');
+        }
+
+        $userInfo = explode(':', $uri->getUserInfo(), 2);
+
+        if (count($userInfo) < 2) {
+            throw new BroadcasttException('Secret part of user info is missing from URI');
+        }
+
+        list($appKey, $appSecret) = $userInfo;
+
+        $client = new BroadcasttClient($appId, $appKey, $appSecret);
+        $client->setScheme($uri->getScheme());
+        $client->setHost($uri->getHost());
+        $client->setPort($uri->getPort());
+
+        return $client;
     }
 
     /**
