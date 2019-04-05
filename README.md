@@ -30,7 +30,7 @@ For tutorials and more in-depth documentation, visit the [official site](https:/
 Require this package, with [Composer](https://getcomposer.org/)
 
 ```
-composer require nergal/broadcastt-php-http
+composer require broadcastt/broadcastt-php-http
 ```
 
 ### Configuration

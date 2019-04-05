@@ -22,7 +22,7 @@ class BroadcasttClient implements LoggerAwareInterface
     /**
      * @var string Version
      */
-    private static $VERSION = '0.2.0';
+    private static $VERSION = '0.2.1';
 
     /**
      * @var string Auth Version
