@@ -1,6 +1,6 @@
 {
     "name": "broadcastt/broadcastt-php-http",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "homepage": "https://broadcastt.xyz/",
     "description": "PHP library for Broadcastt HTTP API",
     "keywords": ["broadcastt", "broadcast", "events", "messaging", "publish", "push", "rest", "realtime", "real-time", "real time", "trigger"],
