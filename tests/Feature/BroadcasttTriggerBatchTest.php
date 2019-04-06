@@ -9,6 +9,7 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use function GuzzleHttp\Psr7\copy_to_string;
+use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\Test\TestLogger;
@@ -37,7 +38,7 @@ class BroadcasttTriggerBatchTest extends TestCase
     }
 
     /**
-     * @throws \Broadcastt\BroadcasttException
+     * @throws BroadcasttException
      */
     public function testCanTriggerBatch()
     {
@@ -67,7 +68,7 @@ class BroadcasttTriggerBatchTest extends TestCase
         $this->assertTrue($response);
 
         $this->assertCount(1, $container);
-        /** @var \GuzzleHttp\Psr7\Request $request */
+        /** @var Request $request */
         $request = $container[0]['request'];
         $this->assertEquals('POST', $request->getMethod());
         $this->assertEquals('http', $request->getUri()->getScheme());

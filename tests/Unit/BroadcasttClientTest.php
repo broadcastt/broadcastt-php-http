@@ -76,6 +76,8 @@ class BroadcasttClientTest extends TestCase
     }
 
     /**
+     * @param $uri
+     *
      * @throws BroadcasttException
      * @dataProvider invalidUriProvider
      */
