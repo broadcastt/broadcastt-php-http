@@ -26,12 +26,12 @@ class BroadcasttClientTest extends TestCase
     {
         $this->assertNull($this->client->getGuzzleClient());
 
-        $this->assertEquals('http', $this->client->getScheme());
-        $this->assertEquals('eu.broadcastt.xyz', $this->client->getHost());
-        $this->assertEquals(80, $this->client->getPort());
-        $this->assertEquals('/apps/{appId}', $this->client->getBasePath());
+        $this->assertEquals('http', $this->client->scheme);
+        $this->assertEquals('eu.broadcastt.xyz', $this->client->host);
+        $this->assertEquals(80, $this->client->port);
+        $this->assertEquals('/apps/{appId}', $this->client->basePath);
 
-        $this->assertEquals(30, $this->client->getTimeout());
+        $this->assertEquals(30, $this->client->timeout);
     }
 
     /**
@@ -41,12 +41,12 @@ class BroadcasttClientTest extends TestCase
     {
         $client = BroadcasttClient::fromUri('https://testkey:testsecret@testhost.xyz:8080/apps/111');
 
-        $this->assertEquals('https', $client->getScheme());
-        $this->assertEquals('testhost.xyz', $client->getHost());
-        $this->assertEquals(8080, $client->getPort());
-        $this->assertEquals('111', $client->getAppId());
-        $this->assertEquals('testkey', $client->getAppKey());
-        $this->assertEquals('testsecret', $client->getAppSecret());
+        $this->assertEquals('https', $client->scheme);
+        $this->assertEquals('testhost.xyz', $client->host);
+        $this->assertEquals(8080, $client->port);
+        $this->assertEquals('111', $client->appId);
+        $this->assertEquals('testkey', $client->appKey);
+        $this->assertEquals('testsecret', $client->appSecret);
     }
 
     /**
@@ -56,12 +56,12 @@ class BroadcasttClientTest extends TestCase
     {
         $client = BroadcasttClient::fromUri(new Uri('https://testkey:testsecret@testhost.xyz:8080/apps/111'));
 
-        $this->assertEquals('https', $client->getScheme());
-        $this->assertEquals('testhost.xyz', $client->getHost());
-        $this->assertEquals(8080, $client->getPort());
-        $this->assertEquals('111', $client->getAppId());
-        $this->assertEquals('testkey', $client->getAppKey());
-        $this->assertEquals('testsecret', $client->getAppSecret());
+        $this->assertEquals('https', $client->scheme);
+        $this->assertEquals('testhost.xyz', $client->host);
+        $this->assertEquals(8080, $client->port);
+        $this->assertEquals('111', $client->appId);
+        $this->assertEquals('testkey', $client->appKey);
+        $this->assertEquals('testsecret', $client->appSecret);
     }
 
     public function invalidUriProvider()
@@ -92,24 +92,24 @@ class BroadcasttClientTest extends TestCase
     {
         $this->client->useTLS();
 
-        $this->assertEquals('https', $this->client->getScheme());
-        $this->assertEquals(443, $this->client->getPort());
+        $this->assertEquals('https', $this->client->scheme);
+        $this->assertEquals(443, $this->client->port);
     }
 
     public function testCanUseTLSMethodKeepNonDefaultPort()
     {
-        $this->client->setPort(8000);
+        $this->client->port = 8000;
         $this->client->useTLS();
 
-        $this->assertEquals('https', $this->client->getScheme());
-        $this->assertEquals(8000, $this->client->getPort());
+        $this->assertEquals('https', $this->client->scheme);
+        $this->assertEquals(8000, $this->client->port);
     }
 
     public function testCanClusterMethodChangeHost()
     {
         $this->client->useCluster('us');
 
-        $this->assertEquals('us.broadcastt.xyz', $this->client->getHost());
+        $this->assertEquals('us.broadcastt.xyz', $this->client->host);
     }
 
     public function httpBuildQueryProvider()

@@ -66,14 +66,6 @@ Default value: `eu`
 
 ### Modifiers
 
-These values can be modified with setters.
-
-#### `basePath` (String)
-
-The base of the path what the request will call. `{appId}` can be used to automatically parse the app ID in the base path.
-
-Default value: `/apps/{appId}`
-
 #### `scheme` (String)
 
 E.g. http or https
@@ -91,6 +83,12 @@ Default value: `eu.broadcasttapp.xyz` If the cluster is not set during initializ
 The http port
 
 Default value: `80`
+
+#### `basePath` (String)
+
+The base of the path what the request will call. `{appId}` can be used to automatically parse the app ID in the base path.
+
+Default value: `/apps/{appId}`
 
 #### `timeout` (String)
 

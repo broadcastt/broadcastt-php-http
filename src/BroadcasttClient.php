@@ -15,6 +15,22 @@ use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LogLevel;
 
+/**
+ * Class BroadcasttClient
+ * @package Broadcastt
+ *
+ * @property-read int $appId Id of your application
+ * @property-read string $appKey Key of your application
+ * @property-read string $appSecret Secret of your application
+ *
+ * @property null|ClientInterface $guzzleClient Guzzle Client for sending HTTP requests
+ * @property string $scheme e.g. http or https
+ * @property string $host The host e.g. cluster.broadcastt.xyz. No trailing forward slash
+ * @property int $port The http port
+ * @property string $basePath The base of the path what the request will call. `{appId}` can be used to automatically
+ *   parse the app ID in the base path.
+ * @property int $timeout The http timeout
+ */
 class BroadcasttClient implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
@@ -34,50 +50,24 @@ class BroadcasttClient implements LoggerAwareInterface
      */
     private static $SLD = '.broadcastt.xyz';
 
-    /**
-     * @var null|ClientInterface
-     */
-    private $guzzleClient = null;
+    private $configurations = [
+        'appId' => null,
+        'appKey' => null,
+        'appSecret' => null,
+    ];
 
     /**
-     * @var string
+     * @var array
      */
-    private $appId;
+    private $modifiers = [
+        'guzzleClient' => null,
+        'scheme' => null,
+        'host' => null,
+        'port' => null,
+        'basePath' => null,
+        'timeout' => null,
+    ];
 
-    /**
-     * @var string
-     */
-    private $appKey;
-
-    /**
-     * @var string
-     */
-    private $appSecret;
-
-    /**
-     * @var string e.g. http or https
-     */
-    private $scheme;
-
-    /**
-     * @var string The host e.g. cluster.broadcastt.xyz. No trailing forward slash
-     */
-    private $host;
-
-    /**
-     * @var int The http port
-     */
-    private $port;
-
-    /**
-     * @var string
-     */
-    private $basePath;
-
-    /**
-     * @var int The http timeout
-     */
-    private $timeout;
 
     /**
      * Initializes a new Broadcastt instance with key, secret and ID of an app.
@@ -89,9 +79,9 @@ class BroadcasttClient implements LoggerAwareInterface
      */
     public function __construct($appId, $appKey, $appSecret, $appCluster = 'eu')
     {
-        $this->appId = $appId;
-        $this->appKey = $appKey;
-        $this->appSecret = $appSecret;
+        $this->configurations['appId'] = $appId;
+        $this->configurations['appKey'] = $appKey;
+        $this->configurations['appSecret'] = $appSecret;
 
         $this->scheme = 'http';
         $this->useCluster($appCluster);
@@ -134,9 +124,9 @@ class BroadcasttClient implements LoggerAwareInterface
         list($appKey, $appSecret) = $userInfo;
 
         $client = new BroadcasttClient($appId, $appKey, $appSecret);
-        $client->setScheme($uri->getScheme());
-        $client->setHost($uri->getHost());
-        $client->setPort($uri->getPort());
+        $client->scheme = $uri->getScheme();
+        $client->host = $uri->getHost();
+        $client->port = $uri->getPort();
 
         return $client;
     }
@@ -314,7 +304,7 @@ class BroadcasttClient implements LoggerAwareInterface
 
         $stringToSign = "$requestMethod\n" . $requestPath . "\n" . self::httpBuildQuery($params);
 
-        $authSignature = hash_hmac('sha256', $stringToSign, $this->getAppSecret(), false);
+        $authSignature = hash_hmac('sha256', $stringToSign, $this->appSecret, false);
 
         $params['auth_signature'] = $authSignature;
         ksort($params);
@@ -568,108 +558,16 @@ class BroadcasttClient implements LoggerAwareInterface
         $this->guzzleClient = $guzzleClient;
     }
 
-    /**
-     * @return string
-     */
-    public function getAppId()
+    public function __get($name)
     {
-        return $this->appId;
+        return $this->configurations[$name] ?? $this->modifiers[$name] ?? null;
     }
 
-    /**
-     * @return string
-     */
-    public function getAppKey()
+    public function __set($name, $value)
     {
-        return $this->appKey;
-    }
-
-    /**
-     * @return string
-     */
-    public function getAppSecret()
-    {
-        return $this->appSecret;
-    }
-
-    /**
-     * @return string
-     */
-    public function getHost()
-    {
-        return $this->host;
-    }
-
-    /**
-     * @param string $host
-     */
-    public function setHost($host)
-    {
-        $this->host = $host;
-    }
-
-    /**
-     * @return string
-     */
-    public function getScheme()
-    {
-        return $this->scheme;
-    }
-
-    /**
-     * @param string $scheme
-     */
-    public function setScheme($scheme)
-    {
-        $this->scheme = $scheme;
-    }
-
-    /**
-     * @return int
-     */
-    public function getPort()
-    {
-        return $this->port;
-    }
-
-    /**
-     * @param int $port
-     */
-    public function setPort($port)
-    {
-        $this->port = $port;
-    }
-
-    /**
-     * @return string
-     */
-    public function getBasePath()
-    {
-        return $this->basePath;
-    }
-
-    /**
-     * @param string $basePath
-     */
-    public function setBasePath($basePath)
-    {
-        $this->basePath = $basePath;
-    }
-
-    /**
-     * @return int
-     */
-    public function getTimeout()
-    {
-        return $this->timeout;
-    }
-
-    /**
-     * @param int $timeout
-     */
-    public function setTimeout($timeout)
-    {
-        $this->timeout = $timeout;
+        if (array_key_exists($name, $this->modifiers)) {
+            $this->modifiers[$name] = $value;
+        }
     }
 
 }
