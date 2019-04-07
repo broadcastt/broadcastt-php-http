@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Broadcastt\BroadcasttClient;
 use Broadcastt\Exception\InvalidChannelNameException;
+use Broadcastt\Exception\InvalidDataException;
 use Broadcastt\Exception\InvalidHostException;
 use Broadcastt\Exception\InvalidSocketIdException;
 use GuzzleHttp\Client;
@@ -105,7 +106,7 @@ class BroadcasttTriggerBatchTest extends TestCase
         $this->expectException(InvalidChannelNameException::class);
 
         $batch = [];
-        $batch[] = ['channel' => $invalidChannel, 'name' => 'test-event'];
+        $batch[] = ['channel' => $invalidChannel, 'name' => 'test-event', 'data' => ['test-key' => 'test-val']];
         $this->client->triggerBatch($batch);
     }
 
@@ -128,7 +129,34 @@ class BroadcasttTriggerBatchTest extends TestCase
         $this->expectException(InvalidSocketIdException::class);
 
         $batch = [];
-        $batch[] = ['channel' => 'test-channel', 'name' => 'test-event', 'socket_id' => $invalidSocketId];
+        $batch[] = [
+            'channel' => 'test-channel',
+            'name' => 'test-event',
+            'data' => ['test-key' => 'test-val'],
+            'socket_id' => $invalidSocketId
+        ];
+        $this->client->triggerBatch($batch);
+    }
+
+    /**
+     * @dataProvider invalidSocketIdProvider
+     */
+    public function testCanNotTriggerBatchWithInvalidData()
+    {
+        $mockHandler = new MockHandler();
+
+        $handlerStack = HandlerStack::create($mockHandler);
+
+        $guzzleClient = new Client([
+            'handler' => $handlerStack,
+        ]);
+
+        $this->client->setGuzzleClient($guzzleClient);
+
+        $this->expectException(InvalidDataException::class);
+
+        $batch = [];
+        $batch[] = ['channel' => 'test-channel', 'name' => 'test-event'];
         $this->client->triggerBatch($batch);
     }
 
@@ -148,7 +176,7 @@ class BroadcasttTriggerBatchTest extends TestCase
         $this->expectException(InvalidHostException::class);
 
         $batch = [];
-        $batch[] = ['channel' => 'test-channel', 'name' => 'test-event'];
+        $batch[] = ['channel' => 'test-channel', 'name' => 'test-event', 'data' => ['test-key' => 'test-val']];
         $this->client->triggerBatch($batch);
     }
 

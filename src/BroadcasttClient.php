@@ -4,6 +4,7 @@ namespace Broadcastt;
 
 use Broadcastt\Exception\InvalidArgumentException;
 use Broadcastt\Exception\InvalidChannelNameException;
+use Broadcastt\Exception\InvalidDataException;
 use Broadcastt\Exception\InvalidSocketIdException;
 use Broadcastt\Exception\TooManyChannelsException;
 use Broadcastt\Exception\InvalidHostException;
@@ -180,7 +181,7 @@ class BroadcasttClient implements LoggerAwareInterface
      */
     private function validateChannel($channel)
     {
-        if (!preg_match('/\A[-a-zA-Z0-9_=@,.;]+\z/', $channel)) {
+        if ($channel === null || !preg_match('/\A[-a-zA-Z0-9_=@,.;]+\z/', $channel)) {
             throw new InvalidChannelNameException('Invalid channel name ' . $channel);
         }
     }
@@ -395,8 +396,12 @@ class BroadcasttClient implements LoggerAwareInterface
     public function triggerBatch($batch = [], $jsonEncoded = false)
     {
         foreach ($batch as $key => $event) {
-            $this->validateChannel($event['channel']);
+            $this->validateChannel($event['channel'] ?? null);
             $this->validateSocketId($event['socket_id'] ?? null);
+
+            if (!array_key_exists('data', $event)) {
+                throw new InvalidDataException('Data is missing from event');
+            }
 
             if (!$jsonEncoded) {
                 $batch[$key]['data'] = json_encode($event['data']);
