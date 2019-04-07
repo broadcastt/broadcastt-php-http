@@ -322,10 +322,6 @@ class BroadcasttClient implements LoggerAwareInterface
      */
     public static function httpBuildQuery($array)
     {
-        if (!is_array($array)) {
-            return $array;
-        }
-
         $string = [];
         foreach ($array as $key => $val) {
             if (is_array($val)) {
@@ -458,6 +454,11 @@ class BroadcasttClient implements LoggerAwareInterface
     public function get($path, $queryParams = [])
     {
         $path = $this->basePath . $path;
+
+        if (is_string($queryParams)) {
+            parse_str($queryParams, $result);
+            $queryParams = $result;
+        }
 
         $ch = $this->buildRequest($this->buildUri(), $path, 'GET', $queryParams);
 
