@@ -2,6 +2,12 @@
 
 namespace Broadcastt;
 
+use Broadcastt\Exception\InvalidArgumentException;
+use Broadcastt\Exception\InvalidChannelNameException;
+use Broadcastt\Exception\InvalidDataException;
+use Broadcastt\Exception\InvalidSocketIdException;
+use Broadcastt\Exception\TooManyChannelsException;
+use Broadcastt\Exception\InvalidHostException;
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
@@ -15,6 +21,22 @@ use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LogLevel;
 
+/**
+ * Class BroadcasttClient
+ * @package Broadcastt
+ *
+ * @property-read int $appId Id of your application
+ * @property-read string $appKey Key of your application
+ * @property-read string $appSecret Secret of your application
+ *
+ * @property null|ClientInterface $guzzleClient Guzzle Client for sending HTTP requests
+ * @property string $scheme e.g. http or https
+ * @property string $host The host e.g. cluster.broadcastt.xyz. No trailing forward slash
+ * @property int $port The http port
+ * @property string $basePath The base of the path what the request will call. `{appId}` can be used to automatically
+ *   parse the app ID in the base path.
+ * @property int $timeout The http timeout
+ */
 class BroadcasttClient implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
@@ -22,7 +44,7 @@ class BroadcasttClient implements LoggerAwareInterface
     /**
      * @var string Version
      */
-    private static $VERSION = '0.2.1';
+    private static $VERSION = '0.3.0';
 
     /**
      * @var string Auth Version
@@ -34,50 +56,24 @@ class BroadcasttClient implements LoggerAwareInterface
      */
     private static $SLD = '.broadcastt.xyz';
 
-    /**
-     * @var null|ClientInterface
-     */
-    private $guzzleClient = null;
+    private $configurations = [
+        'appId' => null,
+        'appKey' => null,
+        'appSecret' => null,
+    ];
 
     /**
-     * @var string
+     * @var array
      */
-    private $appId;
+    private $modifiers = [
+        'guzzleClient' => null,
+        'scheme' => null,
+        'host' => null,
+        'port' => null,
+        'basePath' => null,
+        'timeout' => null,
+    ];
 
-    /**
-     * @var string
-     */
-    private $appKey;
-
-    /**
-     * @var string
-     */
-    private $appSecret;
-
-    /**
-     * @var string e.g. http or https
-     */
-    private $scheme;
-
-    /**
-     * @var string The host e.g. cluster.broadcastt.xyz. No trailing forward slash
-     */
-    private $host;
-
-    /**
-     * @var int The http port
-     */
-    private $port;
-
-    /**
-     * @var string
-     */
-    private $basePath;
-
-    /**
-     * @var int The http timeout
-     */
-    private $timeout;
 
     /**
      * Initializes a new Broadcastt instance with key, secret and ID of an app.
@@ -89,9 +85,9 @@ class BroadcasttClient implements LoggerAwareInterface
      */
     public function __construct($appId, $appKey, $appSecret, $appCluster = 'eu')
     {
-        $this->appId = $appId;
-        $this->appKey = $appKey;
-        $this->appSecret = $appSecret;
+        $this->configurations['appId'] = $appId;
+        $this->configurations['appKey'] = $appKey;
+        $this->configurations['appSecret'] = $appSecret;
 
         $this->scheme = 'http';
         $this->useCluster($appCluster);
@@ -106,7 +102,6 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @param string|UriInterface $uri
      * @return BroadcasttClient
-     * @throws BroadcasttException
      */
     public static function fromUri($uri)
     {
@@ -116,27 +111,27 @@ class BroadcasttClient implements LoggerAwareInterface
 
         preg_match('#^/apps/(\d+)$#', $uri->getPath(), $matches);
         if (count($matches) !== 2) {
-            throw new BroadcasttException('App ID not found in URI');
+            throw new InvalidArgumentException('App ID not found in URI');
         }
 
         $appId = $matches[1];
 
         if (!$uri->getUserInfo()) {
-            throw new BroadcasttException('User info is missing from URI');
+            throw new InvalidArgumentException('User info is missing from URI');
         }
 
         $userInfo = explode(':', $uri->getUserInfo(), 2);
 
         if (count($userInfo) < 2) {
-            throw new BroadcasttException('Secret part of user info is missing from URI');
+            throw new InvalidArgumentException('Secret part of user info is missing from URI');
         }
 
         list($appKey, $appSecret) = $userInfo;
 
         $client = new BroadcasttClient($appId, $appKey, $appSecret);
-        $client->setScheme($uri->getScheme());
-        $client->setHost($uri->getHost());
-        $client->setPort($uri->getPort());
+        $client->scheme = $uri->getScheme();
+        $client->host = $uri->getHost();
+        $client->port = $uri->getPort();
 
         return $client;
     }
@@ -165,12 +160,11 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param string[] $channels An array of channel names to validate
      *
      * @return void
-     * @throws BroadcasttException If $channels is too big or any channel is invalid
      */
     private function validateChannels($channels)
     {
         if (count($channels) > 100) {
-            throw new BroadcasttException('An event can be triggered on a maximum of 100 channels in a single call.');
+            throw new TooManyChannelsException('An event can be triggered on a maximum of 100 channels in a single call.');
         }
 
         foreach ($channels as $channel) {
@@ -184,12 +178,11 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param string $channel The channel name to validate
      *
      * @return void
-     * @throws BroadcasttException If $channel is invalid
      */
     private function validateChannel($channel)
     {
-        if (!preg_match('/\A[-a-zA-Z0-9_=@,.;]+\z/', $channel)) {
-            throw new BroadcasttException('Invalid channel name ' . $channel);
+        if ($channel === null || !preg_match('/\A[-a-zA-Z0-9_=@,.;]+\z/', $channel)) {
+            throw new InvalidChannelNameException('Invalid channel name ' . $channel);
         }
     }
 
@@ -197,13 +190,11 @@ class BroadcasttClient implements LoggerAwareInterface
      * Ensure a socket_id is valid based on our specification.
      *
      * @param string $socketId The socket ID to validate
-     *
-     * @throws BroadcasttException If $socketId is invalid
      */
     private function validateSocketId($socketId)
     {
         if ($socketId !== null && !preg_match('/\A\d+\.\d+\z/', $socketId)) {
-            throw new BroadcasttException('Invalid socket ID ' . $socketId);
+            throw new InvalidSocketIdException('Invalid socket ID ' . $socketId);
         }
     }
 
@@ -270,12 +261,11 @@ class BroadcasttClient implements LoggerAwareInterface
      * Build the URI.
      *
      * @return string
-     * @throws BroadcasttException
      */
     private function buildUri()
     {
         if (preg_match('/^http[s]?\:\/\//', $this->host) !== 0) {
-            throw new BroadcasttException("Invalid host value. Host must not start with http or https.");
+            throw new InvalidHostException("Invalid host value. Host must not start with http or https.");
         }
 
         return $this->scheme . '://' . $this->host . ':' . $this->port;
@@ -314,7 +304,7 @@ class BroadcasttClient implements LoggerAwareInterface
 
         $stringToSign = "$requestMethod\n" . $requestPath . "\n" . self::httpBuildQuery($params);
 
-        $authSignature = hash_hmac('sha256', $stringToSign, $this->getAppSecret(), false);
+        $authSignature = hash_hmac('sha256', $stringToSign, $this->appSecret, false);
 
         $params['auth_signature'] = $authSignature;
         ksort($params);
@@ -333,10 +323,6 @@ class BroadcasttClient implements LoggerAwareInterface
      */
     public static function httpBuildQuery($array)
     {
-        if (!is_array($array)) {
-            return $array;
-        }
-
         $string = [];
         foreach ($array as $key => $val) {
             if (is_array($val)) {
@@ -359,7 +345,6 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param bool $jsonEncoded [optional]
      *
      * @return bool
-     * @throws BroadcasttException Throws exception if $channels is an array of size 101 or above or $socketId is
      * invalid
      */
     public function trigger($channels, $name, $data, $socketId = null, $jsonEncoded = false)
@@ -407,13 +392,16 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param bool $jsonEncoded [optional] Defines if the data is already encoded
      *
      * @return bool
-     * @throws BroadcasttException Throws exception if curl wasn't initialized correctly
      */
     public function triggerBatch($batch = [], $jsonEncoded = false)
     {
         foreach ($batch as $key => $event) {
-            $this->validateChannel($event['channel']);
+            $this->validateChannel($event['channel'] ?? null);
             $this->validateSocketId($event['socket_id'] ?? null);
+
+            if (!array_key_exists('data', $event)) {
+                throw new InvalidDataException('Data is missing from event');
+            }
 
             if (!$jsonEncoded) {
                 $batch[$key]['data'] = json_encode($event['data']);
@@ -442,7 +430,6 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param array $postParams API post params (see https://broadcastt.xyz/docs/References-‐-Rest-API)
      *
      * @return Response
-     * @throws BroadcasttException
      * @throws GuzzleException
      */
     private function post($path, $queryParams = [], $postParams = [])
@@ -468,11 +455,15 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @return Response See Broadcastt API docs
      * @throws GuzzleException
-     * @throws BroadcasttException Throws exception if curl wasn't initialized correctly
      */
     public function get($path, $queryParams = [])
     {
         $path = $this->basePath . $path;
+
+        if (is_string($queryParams)) {
+            parse_str($queryParams, $result);
+            $queryParams = $result;
+        }
 
         $ch = $this->buildRequest($this->buildUri(), $path, 'GET', $queryParams);
 
@@ -487,7 +478,6 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param string $customData
      *
      * @return string Json encoded authentication string.
-     * @throws BroadcasttException Throws exception if $channel is invalid or above or $socketId is invalid
      */
     public function privateAuth($channel, $socketId, $customData = null)
     {
@@ -518,7 +508,6 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param mixed $userInfo
      *
      * @return string
-     * @throws BroadcasttException Throws exception if $channel is invalid or above or $socketId is invalid
      */
     public function presenceAuth($channel, $socketId, $userId, $userInfo = null)
     {
@@ -568,108 +557,16 @@ class BroadcasttClient implements LoggerAwareInterface
         $this->guzzleClient = $guzzleClient;
     }
 
-    /**
-     * @return string
-     */
-    public function getAppId()
+    public function __get($name)
     {
-        return $this->appId;
+        return $this->configurations[$name] ?? $this->modifiers[$name] ?? null;
     }
 
-    /**
-     * @return string
-     */
-    public function getAppKey()
+    public function __set($name, $value)
     {
-        return $this->appKey;
-    }
-
-    /**
-     * @return string
-     */
-    public function getAppSecret()
-    {
-        return $this->appSecret;
-    }
-
-    /**
-     * @return string
-     */
-    public function getHost()
-    {
-        return $this->host;
-    }
-
-    /**
-     * @param string $host
-     */
-    public function setHost($host)
-    {
-        $this->host = $host;
-    }
-
-    /**
-     * @return string
-     */
-    public function getScheme()
-    {
-        return $this->scheme;
-    }
-
-    /**
-     * @param string $scheme
-     */
-    public function setScheme($scheme)
-    {
-        $this->scheme = $scheme;
-    }
-
-    /**
-     * @return int
-     */
-    public function getPort()
-    {
-        return $this->port;
-    }
-
-    /**
-     * @param int $port
-     */
-    public function setPort($port)
-    {
-        $this->port = $port;
-    }
-
-    /**
-     * @return string
-     */
-    public function getBasePath()
-    {
-        return $this->basePath;
-    }
-
-    /**
-     * @param string $basePath
-     */
-    public function setBasePath($basePath)
-    {
-        $this->basePath = $basePath;
-    }
-
-    /**
-     * @return int
-     */
-    public function getTimeout()
-    {
-        return $this->timeout;
-    }
-
-    /**
-     * @param int $timeout
-     */
-    public function setTimeout($timeout)
-    {
-        $this->timeout = $timeout;
+        if (array_key_exists($name, $this->modifiers)) {
+            $this->modifiers[$name] = $value;
+        }
     }
 
 }

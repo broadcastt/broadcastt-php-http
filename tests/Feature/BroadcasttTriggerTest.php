@@ -3,13 +3,17 @@
 namespace Tests\Feature;
 
 use Broadcastt\BroadcasttClient;
-use Broadcastt\BroadcasttException;
+use Broadcastt\Exception\InvalidSocketIdException;
+use Broadcastt\Exception\TooManyChannelsException;
+use Broadcastt\Exception\InvalidHostException;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use function GuzzleHttp\Psr7\copy_to_string;
+use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\Test\TestLogger;
 use Tests\InvalidDataProviders;
@@ -53,7 +57,6 @@ class BroadcasttTriggerTest extends TestCase
     /**
      * @param $goldenBody
      * @param $channelData
-     * @throws \Broadcastt\BroadcasttException
      * @dataProvider channelDataProvider
      */
     public function testCanTriggerData($goldenBody, $channelData)
@@ -81,7 +84,7 @@ class BroadcasttTriggerTest extends TestCase
         $this->assertTrue($response);
 
         $this->assertCount(1, $container);
-        /** @var \GuzzleHttp\Psr7\Request $request */
+        /** @var Request $request */
         $request = $container[0]['request'];
         $this->assertEquals('POST', $request->getMethod());
         $this->assertEquals('http', $request->getUri()->getScheme());
@@ -100,9 +103,6 @@ class BroadcasttTriggerTest extends TestCase
             . '$/', $request->getUri()->getQuery());
     }
 
-    /**
-     * @throws \Broadcastt\BroadcasttException
-     */
     public function testCanTriggerWithSocketId()
     {
         $expectedBody = file_get_contents(__DIR__ . '/testdata/trigger_with_socket_id_request_body.golden');
@@ -128,7 +128,7 @@ class BroadcasttTriggerTest extends TestCase
         $this->assertTrue($response);
 
         $this->assertCount(1, $container);
-        /** @var \GuzzleHttp\Psr7\Request $request */
+        /** @var Request $request */
         $request = $container[0]['request'];
         $this->assertEquals('POST', $request->getMethod());
         $this->assertEquals('http', $request->getUri()->getScheme());
@@ -149,11 +149,10 @@ class BroadcasttTriggerTest extends TestCase
 
     /**
      * @param $invalidChannel
-     * @throws BroadcasttException
      * @dataProvider invalidChannelProvider
      * @dataProvider invalidChannelsProvider
      */
-    public function testCanNotTriggerDataWithInvalidChannel($invalidChannel)
+    public function testCanNotTriggerWithInvalidChannel($invalidChannel)
     {
         $mockHandler = new MockHandler();
 
@@ -165,15 +164,11 @@ class BroadcasttTriggerTest extends TestCase
 
         $this->client->setGuzzleClient($guzzleClient);
 
-        $this->expectException(BroadcasttException::class);
+        $this->expectException(InvalidArgumentException::class);
 
         $this->client->trigger($invalidChannel, 'test-event', '');
     }
 
-    /**
-     * @param $invalidChannel
-     * @throws BroadcasttException
-     */
     public function testCanNotTriggerWithMoreThanHundredChannel()
     {
         $mockHandler = new MockHandler();
@@ -186,7 +181,7 @@ class BroadcasttTriggerTest extends TestCase
 
         $this->client->setGuzzleClient($guzzleClient);
 
-        $this->expectException(BroadcasttException::class);
+        $this->expectException(TooManyChannelsException::class);
 
         $channels = [];
         for ($i = 0; $i < 101; $i++) {
@@ -197,10 +192,9 @@ class BroadcasttTriggerTest extends TestCase
 
     /**
      * @param $invalidSocketId
-     * @throws BroadcasttException
      * @dataProvider invalidSocketIdProvider
      */
-    public function testCanNotTriggerDataWithInvalidSocketId($invalidSocketId)
+    public function testCanNotTriggerWithInvalidSocketId($invalidSocketId)
     {
         $mockHandler = new MockHandler();
 
@@ -212,14 +206,29 @@ class BroadcasttTriggerTest extends TestCase
 
         $this->client->setGuzzleClient($guzzleClient);
 
-        $this->expectException(BroadcasttException::class);
+        $this->expectException(InvalidSocketIdException::class);
 
         $this->client->trigger('test-channel', 'test-event', '', $invalidSocketId);
     }
 
-    /**
-     * @throws BroadcasttException
-     */
+    public function testCanNotTriggerWithInvalidHost()
+    {
+        $mockHandler = new MockHandler();
+
+        $handlerStack = HandlerStack::create($mockHandler);
+
+        $guzzleClient = new Client([
+            'handler' => $handlerStack,
+        ]);
+
+        $this->client->setGuzzleClient($guzzleClient);
+        $this->client->host = 'http://test.xyz';
+
+        $this->expectException(InvalidHostException::class);
+
+        $this->client->trigger('test-channel', 'test-event', '');
+    }
+
     public function testCanTriggerHandlePayloadTooLargeResponse()
     {
         $mockHandler = new MockHandler([
@@ -243,9 +252,6 @@ class BroadcasttTriggerTest extends TestCase
         $this->assertFalse($response);
     }
 
-    /**
-     * @throws BroadcasttException
-     */
     public function testCanTriggerHandlePayloadTooLargeResponseWhenGuzzleExceptionsAreDisabled()
     {
         $mockHandler = new MockHandler([
