@@ -3,8 +3,10 @@
 namespace Tests\Unit;
 
 use Broadcastt\BroadcasttClient;
-use Broadcastt\BroadcasttException;
+use Broadcastt\Exception\InvalidChannelNameException;
+use Broadcastt\Exception\InvalidSocketIdException;
 use GuzzleHttp\Psr7\Uri;
+use Broadcastt\Exception\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Tests\InvalidDataProviders;
 
@@ -34,9 +36,6 @@ class BroadcasttClientTest extends TestCase
         $this->assertEquals(30, $this->client->timeout);
     }
 
-    /**
-     * @throws BroadcasttException
-     */
     public function testCanCreateClientInstanceFromUri()
     {
         $client = BroadcasttClient::fromUri('https://testkey:testsecret@testhost.xyz:8080/apps/111');
@@ -49,9 +48,6 @@ class BroadcasttClientTest extends TestCase
         $this->assertEquals('testsecret', $client->appSecret);
     }
 
-    /**
-     * @throws BroadcasttException
-     */
     public function testCanCreateClientInstanceFromUriInstance()
     {
         $client = BroadcasttClient::fromUri(new Uri('https://testkey:testsecret@testhost.xyz:8080/apps/111'));
@@ -78,12 +74,11 @@ class BroadcasttClientTest extends TestCase
     /**
      * @param $uri
      *
-     * @throws BroadcasttException
      * @dataProvider invalidUriProvider
      */
     public function testCanNotCreateClientInstanceFromInvalidUri($uri)
     {
-        $this->expectException(BroadcasttException::class);
+        $this->expectException(InvalidArgumentException::class);
 
         BroadcasttClient::fromUri($uri);
     }
@@ -146,12 +141,11 @@ class BroadcasttClientTest extends TestCase
     /**
      * @param $invalidChannel
      *
-     * @throws BroadcasttException
      * @dataProvider invalidChannelProvider
      */
     public function testCanPrivateAuthMethodThrowExceptionForInvalidChannel($invalidChannel)
     {
-        $this->expectException(BroadcasttException::class);
+        $this->expectException(InvalidChannelNameException::class);
 
         $this->client->privateAuth($invalidChannel, '1.1');
     }
@@ -159,12 +153,11 @@ class BroadcasttClientTest extends TestCase
     /**
      * @param $invalidSocketId
      *
-     * @throws BroadcasttException
      * @dataProvider invalidSocketIdProvider
      */
     public function testCanPrivateAuthMethodThrowExceptionForInvalidSocketId($invalidSocketId)
     {
-        $this->expectException(BroadcasttException::class);
+        $this->expectException(InvalidSocketIdException::class);
 
         $this->client->privateAuth('test-channel', $invalidSocketId);
     }
@@ -190,7 +183,6 @@ class BroadcasttClientTest extends TestCase
      * @param $channel
      * @param $socketId
      *
-     * @throws BroadcasttException
      * @dataProvider validPrivateAuthDetailsProvider
      */
     public function testCanPrivateAuthMethodBuildCorrectString($expected, $channel, $socketId)
@@ -203,12 +195,11 @@ class BroadcasttClientTest extends TestCase
     /**
      * @param $invalidChannel
      *
-     * @throws BroadcasttException
      * @dataProvider invalidChannelProvider
      */
     public function testCanPresenceAuthMethodThrowExceptionForInvalidChannel($invalidChannel)
     {
-        $this->expectException(BroadcasttException::class);
+        $this->expectException(InvalidChannelNameException::class);
 
         $this->client->presenceAuth($invalidChannel, '1.1', 'id');
     }
@@ -216,12 +207,11 @@ class BroadcasttClientTest extends TestCase
     /**
      * @param $invalidSocketId
      *
-     * @throws BroadcasttException
      * @dataProvider invalidSocketIdProvider
      */
     public function testCanPresenceAuthMethodThrowExceptionForInvalidSocketId($invalidSocketId)
     {
-        $this->expectException(BroadcasttException::class);
+        $this->expectException(InvalidSocketIdException::class);
 
         $this->client->presenceAuth('test-channel', $invalidSocketId, 'id');
     }
@@ -250,7 +240,6 @@ class BroadcasttClientTest extends TestCase
      * @param $userId
      * @param $userInfo
      *
-     * @throws BroadcasttException
      * @dataProvider validPresenceAuthDetailsProvider
      */
     public function testCanPresenceAuthMethodBuildCorrectString($expectedAuth, $expectedData, $userId, $userInfo)

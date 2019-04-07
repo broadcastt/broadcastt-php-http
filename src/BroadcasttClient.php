@@ -2,6 +2,11 @@
 
 namespace Broadcastt;
 
+use Broadcastt\Exception\InvalidArgumentException;
+use Broadcastt\Exception\InvalidChannelNameException;
+use Broadcastt\Exception\InvalidSocketIdException;
+use Broadcastt\Exception\TooManyChannelsException;
+use Broadcastt\Exception\InvalidHostException;
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
@@ -96,7 +101,6 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @param string|UriInterface $uri
      * @return BroadcasttClient
-     * @throws BroadcasttException
      */
     public static function fromUri($uri)
     {
@@ -106,19 +110,19 @@ class BroadcasttClient implements LoggerAwareInterface
 
         preg_match('#^/apps/(\d+)$#', $uri->getPath(), $matches);
         if (count($matches) !== 2) {
-            throw new BroadcasttException('App ID not found in URI');
+            throw new InvalidArgumentException('App ID not found in URI');
         }
 
         $appId = $matches[1];
 
         if (!$uri->getUserInfo()) {
-            throw new BroadcasttException('User info is missing from URI');
+            throw new InvalidArgumentException('User info is missing from URI');
         }
 
         $userInfo = explode(':', $uri->getUserInfo(), 2);
 
         if (count($userInfo) < 2) {
-            throw new BroadcasttException('Secret part of user info is missing from URI');
+            throw new InvalidArgumentException('Secret part of user info is missing from URI');
         }
 
         list($appKey, $appSecret) = $userInfo;
@@ -155,12 +159,11 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param string[] $channels An array of channel names to validate
      *
      * @return void
-     * @throws BroadcasttException If $channels is too big or any channel is invalid
      */
     private function validateChannels($channels)
     {
         if (count($channels) > 100) {
-            throw new BroadcasttException('An event can be triggered on a maximum of 100 channels in a single call.');
+            throw new TooManyChannelsException('An event can be triggered on a maximum of 100 channels in a single call.');
         }
 
         foreach ($channels as $channel) {
@@ -174,12 +177,11 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param string $channel The channel name to validate
      *
      * @return void
-     * @throws BroadcasttException If $channel is invalid
      */
     private function validateChannel($channel)
     {
         if (!preg_match('/\A[-a-zA-Z0-9_=@,.;]+\z/', $channel)) {
-            throw new BroadcasttException('Invalid channel name ' . $channel);
+            throw new InvalidChannelNameException('Invalid channel name ' . $channel);
         }
     }
 
@@ -187,13 +189,11 @@ class BroadcasttClient implements LoggerAwareInterface
      * Ensure a socket_id is valid based on our specification.
      *
      * @param string $socketId The socket ID to validate
-     *
-     * @throws BroadcasttException If $socketId is invalid
      */
     private function validateSocketId($socketId)
     {
         if ($socketId !== null && !preg_match('/\A\d+\.\d+\z/', $socketId)) {
-            throw new BroadcasttException('Invalid socket ID ' . $socketId);
+            throw new InvalidSocketIdException('Invalid socket ID ' . $socketId);
         }
     }
 
@@ -260,12 +260,11 @@ class BroadcasttClient implements LoggerAwareInterface
      * Build the URI.
      *
      * @return string
-     * @throws BroadcasttException
      */
     private function buildUri()
     {
         if (preg_match('/^http[s]?\:\/\//', $this->host) !== 0) {
-            throw new BroadcasttException("Invalid host value. Host must not start with http or https.");
+            throw new InvalidHostException("Invalid host value. Host must not start with http or https.");
         }
 
         return $this->scheme . '://' . $this->host . ':' . $this->port;
@@ -349,7 +348,6 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param bool $jsonEncoded [optional]
      *
      * @return bool
-     * @throws BroadcasttException Throws exception if $channels is an array of size 101 or above or $socketId is
      * invalid
      */
     public function trigger($channels, $name, $data, $socketId = null, $jsonEncoded = false)
@@ -397,7 +395,6 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param bool $jsonEncoded [optional] Defines if the data is already encoded
      *
      * @return bool
-     * @throws BroadcasttException Throws exception if curl wasn't initialized correctly
      */
     public function triggerBatch($batch = [], $jsonEncoded = false)
     {
@@ -432,7 +429,6 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param array $postParams API post params (see https://broadcastt.xyz/docs/References-‐-Rest-API)
      *
      * @return Response
-     * @throws BroadcasttException
      * @throws GuzzleException
      */
     private function post($path, $queryParams = [], $postParams = [])
@@ -458,7 +454,6 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @return Response See Broadcastt API docs
      * @throws GuzzleException
-     * @throws BroadcasttException Throws exception if curl wasn't initialized correctly
      */
     public function get($path, $queryParams = [])
     {
@@ -477,7 +472,6 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param string $customData
      *
      * @return string Json encoded authentication string.
-     * @throws BroadcasttException Throws exception if $channel is invalid or above or $socketId is invalid
      */
     public function privateAuth($channel, $socketId, $customData = null)
     {
@@ -508,7 +502,6 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param mixed $userInfo
      *
      * @return string
-     * @throws BroadcasttException Throws exception if $channel is invalid or above or $socketId is invalid
      */
     public function presenceAuth($channel, $socketId, $userId, $userInfo = null)
     {
