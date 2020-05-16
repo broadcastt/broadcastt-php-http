@@ -32,7 +32,7 @@ jobs:
           path: ~/.composer/cache/files
           key: php-${{ matrix.php }}-${{ matrix.dependecies }}-composer-${{ hashFiles('composer.json') }}
 
-      - uses: shivammathur/setup-php@v1
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           coverage: xdebug
