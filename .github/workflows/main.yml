@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    name: PHP ${{ matrix.php }} - Laravel ${{ matrix.laravel }}
+    name: PHP ${{ matrix.php }} - Dependecies ${{ matrix.dependecies }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
@@ -20,7 +20,7 @@ jobs:
           - '7.2'
           - '7.3'
           - '7.4'
-        version:
+        dependecies:
           - 'stable'
           - 'lowest'
 
@@ -41,7 +41,7 @@ jobs:
         run: composer validate
 
       - name: Install dependencies
-        run: composer update --prefer-${{ matrix.version }} --prefer-dist --no-interaction --no-suggest
+        run: composer update --prefer-${{ matrix.dependecies }} --prefer-dist --no-interaction --no-suggest
 
       - name: Run test
         run: ./vendor/bin/phpunit --coverage-clover ./coverage.xml
