@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    name: PHP ${{ matrix.php }} - Dependecies ${{ matrix.dependecies }}
+    name: PHP ${{ matrix.php }} - ${{ matrix.dependecies }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
@@ -30,7 +30,7 @@ jobs:
       - uses: actions/cache@v1
         with:
           path: ~/.composer/cache/files
-          key: php-${{ matrix.php }}-composer-${{ hashFiles('composer.json') }}
+          key: php-${{ matrix.php }}-${{ matrix.dependecies }}-composer-${{ hashFiles('composer.json') }}
 
       - uses: shivammathur/setup-php@v1
         with:
