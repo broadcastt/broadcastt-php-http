@@ -1,5 +1,10 @@
 # Broadcastt
 
+[![](https://img.shields.io/github/workflow/status/broadcastt/broadcastt-php-http/Test?style=flat-square)](https://github.com/broadcastt/broadcastt-php-http/actions?query=workflow%3ATest)
+[![codecov](https://codecov.io/gh/broadcastt/broadcastt-php-http/branch/master/graph/badge.svg)](https://codecov.io/gh/broadcastt/broadcastt-php-http)
+[![](https://img.shields.io/github/license/broadcastt/broadcastt-php-http?style=flat-square)](https://github.com/broadcastt/broadcastt-php-http/blob/master/LICENSE)
+[![](https://img.shields.io/packagist/v/broadcastt/broadcastt-php-http?style=flat-square)](https://packagist.org/packages/broadcastt/broadcastt-php-http)
+
 Realtime web applications are the future. [Broadcastt](https://broadcastt.xyz/) provides tools to help developers create realtime applications.
 
 ## PHP HTTP Library
