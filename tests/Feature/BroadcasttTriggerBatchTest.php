@@ -8,6 +8,7 @@ use Broadcastt\Exception\InvalidDataException;
 use Broadcastt\Exception\InvalidHostException;
 use Broadcastt\Exception\InvalidSocketIdException;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
@@ -202,8 +203,8 @@ class BroadcasttTriggerBatchTest extends TestCase
         $batch = [];
         $batch[] = ['channel' => 'test-channel', 'name' => 'test-event', 'data' => ['test-key' => 'test-val']];
         $batch[] = ['channel' => 'test-channel2', 'name' => 'test-event2', 'data' => ['test-key' => 'test-val2']];
-        $response = $this->client->triggerBatch($batch);
-        $this->assertFalse($response);
+        $this->expectException(GuzzleException::class);
+        $this->client->triggerBatch($batch);
     }
 
     public function testCanTriggerBatchHandlePayloadTooLargeResponseWhenGuzzleExceptionsAreDisabled()
