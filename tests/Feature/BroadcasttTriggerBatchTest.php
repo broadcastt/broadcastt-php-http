@@ -243,6 +243,11 @@ class BroadcasttTriggerBatchTest extends TestCase
         $batch = [];
         $batch[] = ['channel' => 'test-channel', 'name' => 'test-event', 'data' => $data];
         $this->expectException(JsonEncodeException::class);
-        $this->client->triggerBatch($batch);
+        try {
+            $this->client->triggerBatch($batch);
+        } catch (JsonEncodeException $e) {
+            $this->assertEquals($e->getData(), $data);
+            throw $e;
+        }
     }
 }

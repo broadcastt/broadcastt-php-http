@@ -280,6 +280,11 @@ class BroadcasttTriggerTest extends TestCase
         $data = "\xB1\x31";
 
         $this->expectException(JsonEncodeException::class);
-        $this->client->trigger('test-channel', 'test-event', $data);
+        try {
+            $this->client->trigger('test-channel', 'test-event', $data);
+        } catch (JsonEncodeException $e) {
+            $this->assertEquals($e->getData(), $data);
+            throw $e;
+        }
     }
 }
