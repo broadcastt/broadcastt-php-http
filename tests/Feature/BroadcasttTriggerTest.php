@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Broadcastt\BroadcasttClient;
 use Broadcastt\Exception\InvalidSocketIdException;
+use Broadcastt\Exception\JsonEncodeException;
 use Broadcastt\Exception\TooManyChannelsException;
 use Broadcastt\Exception\InvalidHostException;
 use GuzzleHttp\Client;
@@ -273,4 +274,12 @@ class BroadcasttTriggerTest extends TestCase
         $this->assertFalse($response);
     }
 
+    public function testCanTriggerThrowExceptionOnJsonEncodeFailure()
+    {
+        // data from https://www.php.net/manual/en/function.json-last-error.php
+        $data = "\xB1\x31";
+
+        $this->expectException(JsonEncodeException::class);
+        $this->client->trigger('test-channel', 'test-event', $data);
+    }
 }

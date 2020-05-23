@@ -7,6 +7,7 @@ use Broadcastt\Exception\InvalidChannelNameException;
 use Broadcastt\Exception\InvalidDataException;
 use Broadcastt\Exception\InvalidHostException;
 use Broadcastt\Exception\InvalidSocketIdException;
+use Broadcastt\Exception\JsonEncodeException;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Handler\MockHandler;
@@ -234,4 +235,14 @@ class BroadcasttTriggerBatchTest extends TestCase
         $this->assertFalse($response);
     }
 
+    public function testCanTriggerBatchThrowExceptionOnJsonEncodeFailure()
+    {
+        // data from https://www.php.net/manual/en/function.json-last-error.php
+        $data = "\xB1\x31";
+
+        $batch = [];
+        $batch[] = ['channel' => 'test-channel', 'name' => 'test-event', 'data' => $data];
+        $this->expectException(JsonEncodeException::class);
+        $this->client->triggerBatch($batch);
+    }
 }
