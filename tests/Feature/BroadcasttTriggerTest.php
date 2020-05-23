@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use Broadcastt\BroadcasttClient;
 use Broadcastt\Exception\InvalidSocketIdException;
+use Broadcastt\Exception\JsonEncodeException;
 use Broadcastt\Exception\TooManyChannelsException;
 use Broadcastt\Exception\InvalidHostException;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
@@ -165,7 +167,6 @@ class BroadcasttTriggerTest extends TestCase
         $this->client->setGuzzleClient($guzzleClient);
 
         $this->expectException(InvalidArgumentException::class);
-
         $this->client->trigger($invalidChannel, 'test-event', '');
     }
 
@@ -181,12 +182,11 @@ class BroadcasttTriggerTest extends TestCase
 
         $this->client->setGuzzleClient($guzzleClient);
 
-        $this->expectException(TooManyChannelsException::class);
-
         $channels = [];
         for ($i = 0; $i < 101; $i++) {
             $channels[] = 'test-channel' . $i;
         }
+        $this->expectException(TooManyChannelsException::class);
         $this->client->trigger($channels, 'test-event', '');
     }
 
@@ -207,7 +207,6 @@ class BroadcasttTriggerTest extends TestCase
         $this->client->setGuzzleClient($guzzleClient);
 
         $this->expectException(InvalidSocketIdException::class);
-
         $this->client->trigger('test-channel', 'test-event', '', $invalidSocketId);
     }
 
@@ -225,11 +224,10 @@ class BroadcasttTriggerTest extends TestCase
         $this->client->host = 'http://test.xyz';
 
         $this->expectException(InvalidHostException::class);
-
         $this->client->trigger('test-channel', 'test-event', '');
     }
 
-    public function testCanTriggerHandlePayloadTooLargeResponse()
+    public function testCanTriggerThrowExceptionOnPayloadTooLargeResponse()
     {
         $mockHandler = new MockHandler([
             new Response(413, [], '{}'),
@@ -248,8 +246,8 @@ class BroadcasttTriggerTest extends TestCase
 
         $this->client->setGuzzleClient($guzzleClient);
 
-        $response = $this->client->trigger('test-channel', 'test-event', '');
-        $this->assertFalse($response);
+        $this->expectException(GuzzleException::class);
+        $this->client->trigger('test-channel', 'test-event', '');
     }
 
     public function testCanTriggerHandlePayloadTooLargeResponseWhenGuzzleExceptionsAreDisabled()
@@ -276,4 +274,17 @@ class BroadcasttTriggerTest extends TestCase
         $this->assertFalse($response);
     }
 
+    public function testCanTriggerThrowExceptionOnJsonEncodeFailure()
+    {
+        // data from https://www.php.net/manual/en/function.json-last-error.php
+        $data = "\xB1\x31";
+
+        $this->expectException(JsonEncodeException::class);
+        try {
+            $this->client->trigger('test-channel', 'test-event', $data);
+        } catch (JsonEncodeException $e) {
+            $this->assertEquals($e->getData(), $data);
+            throw $e;
+        }
+    }
 }

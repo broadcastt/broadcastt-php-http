@@ -7,7 +7,9 @@ use Broadcastt\Exception\InvalidChannelNameException;
 use Broadcastt\Exception\InvalidDataException;
 use Broadcastt\Exception\InvalidHostException;
 use Broadcastt\Exception\InvalidSocketIdException;
+use Broadcastt\Exception\JsonEncodeException;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
@@ -180,7 +182,7 @@ class BroadcasttTriggerBatchTest extends TestCase
         $this->client->triggerBatch($batch);
     }
 
-    public function testCanTriggerBatchHandlePayloadTooLargeResponse()
+    public function testCanTriggerBatchThrowExceptionOnPayloadTooLargeResponse()
     {
         $mockHandler = new MockHandler([
             new Response(413, [], '{}'),
@@ -202,8 +204,8 @@ class BroadcasttTriggerBatchTest extends TestCase
         $batch = [];
         $batch[] = ['channel' => 'test-channel', 'name' => 'test-event', 'data' => ['test-key' => 'test-val']];
         $batch[] = ['channel' => 'test-channel2', 'name' => 'test-event2', 'data' => ['test-key' => 'test-val2']];
-        $response = $this->client->triggerBatch($batch);
-        $this->assertFalse($response);
+        $this->expectException(GuzzleException::class);
+        $this->client->triggerBatch($batch);
     }
 
     public function testCanTriggerBatchHandlePayloadTooLargeResponseWhenGuzzleExceptionsAreDisabled()
@@ -233,4 +235,19 @@ class BroadcasttTriggerBatchTest extends TestCase
         $this->assertFalse($response);
     }
 
+    public function testCanTriggerBatchThrowExceptionOnJsonEncodeFailure()
+    {
+        // data from https://www.php.net/manual/en/function.json-last-error.php
+        $data = "\xB1\x31";
+
+        $batch = [];
+        $batch[] = ['channel' => 'test-channel', 'name' => 'test-event', 'data' => $data];
+        $this->expectException(JsonEncodeException::class);
+        try {
+            $this->client->triggerBatch($batch);
+        } catch (JsonEncodeException $e) {
+            $this->assertEquals($e->getData(), $data);
+            throw $e;
+        }
+    }
 }

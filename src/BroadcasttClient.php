@@ -5,24 +5,26 @@ namespace Broadcastt;
 use Broadcastt\Exception\InvalidArgumentException;
 use Broadcastt\Exception\InvalidChannelNameException;
 use Broadcastt\Exception\InvalidDataException;
-use Broadcastt\Exception\InvalidSocketIdException;
-use Broadcastt\Exception\TooManyChannelsException;
 use Broadcastt\Exception\InvalidHostException;
+use Broadcastt\Exception\InvalidSocketIdException;
+use Broadcastt\Exception\JsonEncodeException;
+use Broadcastt\Exception\TooManyChannelsException;
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Response;
-use function GuzzleHttp\Psr7\stream_for;
 use GuzzleHttp\Psr7\Uri;
 use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LogLevel;
+use function GuzzleHttp\Psr7\stream_for;
 
 /**
  * Class BroadcasttClient
+ *
  * @package Broadcastt
  *
  * @property-read int $appId Id of your application
@@ -74,7 +76,6 @@ class BroadcasttClient implements LoggerAwareInterface
         'timeout' => null,
     ];
 
-
     /**
      * Initializes a new Broadcastt instance with key, secret and ID of an app.
      *
@@ -101,6 +102,7 @@ class BroadcasttClient implements LoggerAwareInterface
      * Clients can be instantiated from a URI. For example: "http://key:secret@eu.broadcastt.com/apps/{appId}"
      *
      * @param string|UriInterface $uri
+     *
      * @return BroadcasttClient
      */
     public static function fromUri($uri)
@@ -126,7 +128,7 @@ class BroadcasttClient implements LoggerAwareInterface
             throw new InvalidArgumentException('Secret part of user info is missing from URI');
         }
 
-        list($appKey, $appSecret) = $userInfo;
+        [$appKey, $appSecret] = $userInfo;
 
         $client = new BroadcasttClient($appId, $appKey, $appSecret);
         $client->scheme = $uri->getScheme();
@@ -233,7 +235,7 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @param RequestInterface $request
      *
-     * @return Response
+     * @return ResponseInterface
      * @throws GuzzleException
      */
     private function sendRequest($request)
@@ -275,6 +277,7 @@ class BroadcasttClient implements LoggerAwareInterface
      * Check if the status code indicates the request was successful.
      *
      * @param $status
+     *
      * @return bool
      */
     private function isSuccessStatusCode($status)
@@ -345,7 +348,8 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param bool $jsonEncoded [optional]
      *
      * @return bool
-     * invalid
+     * @throws GuzzleException
+     * @throws JsonEncodeException on JSON encode failure.
      */
     public function trigger($channels, $name, $data, $socketId = null, $jsonEncoded = false)
     {
@@ -356,33 +360,28 @@ class BroadcasttClient implements LoggerAwareInterface
         $this->validateChannels($channels);
         $this->validateSocketId($socketId);
 
+        $jsonData = $data;
         if (!$jsonEncoded) {
-            $data = json_encode($data);
+            $jsonData = json_encode($data);
 
-            // json_encode might return false on failure
-            if (!$data) {
-                $this->log('Failed to perform json_encode on the the provided data: {error}', [
-                    'error' => $data,
-                ], LogLevel::ERROR);
+            // json_encode returns false on failure
+            if ($jsonData === false) {
+                throw new JsonEncodeException($data, json_last_error_msg(), json_last_error());
             }
         }
 
         $postParams = [];
         $postParams['name'] = $name;
-        $postParams['data'] = $data;
+        $postParams['data'] = $jsonData;
         $postParams['channels'] = $channels;
 
         if ($socketId !== null) {
             $postParams['socket_id'] = $socketId;
         }
 
-        try {
-            $response = $this->post('/event', [], $postParams);
+        $response = $this->post('/event', [], $postParams);
 
-            return $this->isSuccessStatusCode($response->getStatusCode());
-        } catch (GuzzleException $e) {
-            return false;
-        }
+        return $this->isSuccessStatusCode($response->getStatusCode());
     }
 
     /**
@@ -392,6 +391,8 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param bool $jsonEncoded [optional] Defines if the data is already encoded
      *
      * @return bool
+     * @throws GuzzleException
+     * @throws JsonEncodeException on JSON encode failure.
      */
     public function triggerBatch($batch = [], $jsonEncoded = false)
     {
@@ -404,21 +405,23 @@ class BroadcasttClient implements LoggerAwareInterface
             }
 
             if (!$jsonEncoded) {
-                $batch[$key]['data'] = json_encode($event['data']);
+                $jsonData = json_encode($event['data']);
+
+                // json_encode returns false on failure
+                if ($jsonData === false) {
+                    throw new JsonEncodeException($event['data'], json_last_error_msg(), json_last_error());
+                }
+
+                $batch[$key]['data'] = $jsonData;
             }
         }
 
         $postParams = [];
         $postParams['batch'] = $batch;
 
+        $response = $this->post('/events', [], $postParams);
 
-        try {
-            $response = $this->post('/events', [], $postParams);
-
-            return $this->isSuccessStatusCode($response->getStatusCode());
-        } catch (GuzzleException $e) {
-            return false;
-        }
+        return $this->isSuccessStatusCode($response->getStatusCode());
     }
 
     /**
@@ -429,7 +432,7 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param array $queryParams API query params (see https://broadcastt.xyz/docs/References-‐-Rest-API)
      * @param array $postParams API post params (see https://broadcastt.xyz/docs/References-‐-Rest-API)
      *
-     * @return Response
+     * @return ResponseInterface
      * @throws GuzzleException
      */
     private function post($path, $queryParams = [], $postParams = [])
@@ -453,7 +456,7 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param string $path Path excluding /apps/{appId}
      * @param array $queryParams API query params (see https://broadcastt.xyz/docs/References-‐-Rest-API)
      *
-     * @return Response See Broadcastt API docs
+     * @return ResponseInterface See Broadcastt API docs
      * @throws GuzzleException
      */
     public function get($path, $queryParams = [])
@@ -568,5 +571,4 @@ class BroadcasttClient implements LoggerAwareInterface
             $this->modifiers[$name] = $value;
         }
     }
-
 }
