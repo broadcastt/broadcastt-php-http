@@ -365,7 +365,7 @@ class BroadcasttClient implements LoggerAwareInterface
 
             // json_encode returns false on failure
             if ($data === false) {
-                throw new JsonEncodeException('Failed to perform json_encode on the the provided data', $data);
+                throw new JsonEncodeException($data, json_last_error_msg(), json_last_error());
             }
         }
 
@@ -408,7 +408,7 @@ class BroadcasttClient implements LoggerAwareInterface
 
                 // json_encode returns false on failure
                 if ($data === false) {
-                    throw new JsonEncodeException('Failed to perform json_encode on the the provided data', $data);
+                    throw new JsonEncodeException($data, json_last_error_msg(), json_last_error());
                 }
 
                 $batch[$key]['data'] = $data;

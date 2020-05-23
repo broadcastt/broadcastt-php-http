@@ -6,7 +6,7 @@ class JsonEncodeException extends \RuntimeException
 {
     private $data;
 
-    public function __construct($message, $data, $code = 0, \Throwable $previous = null)
+    public function __construct($data, $message, $code, \Throwable $previous = null)
     {
         parent::__construct($message, $code, $previous);
         $this->data = $data;
