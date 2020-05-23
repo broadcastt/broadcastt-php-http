@@ -360,18 +360,19 @@ class BroadcasttClient implements LoggerAwareInterface
         $this->validateChannels($channels);
         $this->validateSocketId($socketId);
 
+        $jsonData = $data;
         if (!$jsonEncoded) {
-            $data = json_encode($data);
+            $jsonData = json_encode($data);
 
             // json_encode returns false on failure
-            if ($data === false) {
+            if ($jsonData === false) {
                 throw new JsonEncodeException($data, json_last_error_msg(), json_last_error());
             }
         }
 
         $postParams = [];
         $postParams['name'] = $name;
-        $postParams['data'] = $data;
+        $postParams['data'] = $jsonData;
         $postParams['channels'] = $channels;
 
         if ($socketId !== null) {
@@ -404,14 +405,14 @@ class BroadcasttClient implements LoggerAwareInterface
             }
 
             if (!$jsonEncoded) {
-                $data = json_encode($event['data']);
+                $jsonData = json_encode($event['data']);
 
                 // json_encode returns false on failure
-                if ($data === false) {
-                    throw new JsonEncodeException($data, json_last_error_msg(), json_last_error());
+                if ($jsonData === false) {
+                    throw new JsonEncodeException($event['data'], json_last_error_msg(), json_last_error());
                 }
 
-                $batch[$key]['data'] = $data;
+                $batch[$key]['data'] = $jsonData;
             }
         }
 
