@@ -182,7 +182,7 @@ class BroadcasttTriggerBatchTest extends TestCase
         $this->client->triggerBatch($batch);
     }
 
-    public function testCanTriggerBatchHandlePayloadTooLargeResponse()
+    public function testCanTriggerBatchThrowExceptionOnPayloadTooLargeResponse()
     {
         $mockHandler = new MockHandler([
             new Response(413, [], '{}'),

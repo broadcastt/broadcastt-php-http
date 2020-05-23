@@ -227,7 +227,7 @@ class BroadcasttTriggerTest extends TestCase
         $this->client->trigger('test-channel', 'test-event', '');
     }
 
-    public function testCanTriggerHandlePayloadTooLargeResponse()
+    public function testCanTriggerThrowExceptionOnPayloadTooLargeResponse()
     {
         $mockHandler = new MockHandler([
             new Response(413, [], '{}'),
