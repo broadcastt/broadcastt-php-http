@@ -38,11 +38,11 @@ class BroadcasttTriggerBatchTest extends TestCase
     {
         $this->logger = new TestLogger();
 
-        $this->client = new BroadcasttClient('testid', 'testkey', 'testsecret');
+        $this->client = new BroadcasttClient(1, 'testkey', 'testsecret');
         $this->client->setLogger($this->logger);
     }
 
-    public function testCanTriggerBatch()
+    public function testCanTriggerBatch(): void
     {
         $expectedBody = file_get_contents(__DIR__ . '/testdata/triggerBatch_request_body.golden');
 
@@ -76,7 +76,7 @@ class BroadcasttTriggerBatchTest extends TestCase
         $this->assertEquals('http', $request->getUri()->getScheme());
         $this->assertEquals('eu.broadcastt.xyz', $request->getUri()->getHost());
         $this->assertEquals(null, $request->getUri()->getPort());
-        $this->assertEquals('/apps/testid/events', $request->getUri()->getPath());
+        $this->assertEquals('/apps/1/events', $request->getUri()->getPath());
         $this->assertEquals('application/json', $request->getHeader('Content-Type')[0]);
 
         $this->assertJsonStringEqualsJsonString($expectedBody, copy_to_string($request->getBody()));
@@ -92,8 +92,9 @@ class BroadcasttTriggerBatchTest extends TestCase
     /**
      * @param $invalidChannel
      * @dataProvider invalidChannelProvider
+     * @throws GuzzleException
      */
-    public function testCanNotTriggerBatchWithInvalidChannel($invalidChannel)
+    public function testCanNotTriggerBatchWithInvalidChannel($invalidChannel): void
     {
         $mockHandler = new MockHandler();
 
@@ -115,8 +116,9 @@ class BroadcasttTriggerBatchTest extends TestCase
     /**
      * @param $invalidSocketId
      * @dataProvider invalidSocketIdProvider
+     * @throws GuzzleException
      */
-    public function testCanNotTriggerBatchWithInvalidSocketId($invalidSocketId)
+    public function testCanNotTriggerBatchWithInvalidSocketId($invalidSocketId): void
     {
         $mockHandler = new MockHandler();
 
@@ -143,7 +145,7 @@ class BroadcasttTriggerBatchTest extends TestCase
     /**
      * @dataProvider invalidSocketIdProvider
      */
-    public function testCanNotTriggerBatchWithInvalidData()
+    public function testCanNotTriggerBatchWithInvalidData(): void
     {
         $mockHandler = new MockHandler();
 
@@ -162,7 +164,7 @@ class BroadcasttTriggerBatchTest extends TestCase
         $this->client->triggerBatch($batch);
     }
 
-    public function testCanNotTriggerBatchWithInvalidHost()
+    public function testCanNotTriggerBatchWithInvalidHost(): void
     {
         $mockHandler = new MockHandler();
 
@@ -182,7 +184,7 @@ class BroadcasttTriggerBatchTest extends TestCase
         $this->client->triggerBatch($batch);
     }
 
-    public function testCanTriggerBatchThrowExceptionOnPayloadTooLargeResponse()
+    public function testCanTriggerBatchThrowExceptionOnPayloadTooLargeResponse(): void
     {
         $mockHandler = new MockHandler([
             new Response(413, [], '{}'),

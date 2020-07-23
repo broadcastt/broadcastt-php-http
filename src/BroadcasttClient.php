@@ -84,7 +84,7 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param string $appSecret Secret of your application
      * @param string $appCluster Cluster name to connect to.
      */
-    public function __construct($appId, $appKey, $appSecret, $appCluster = 'eu')
+    public function __construct(int $appId, string $appKey, string $appSecret, string $appCluster = 'eu')
     {
         $this->configurations['appId'] = $appId;
         $this->configurations['appKey'] = $appKey;
@@ -105,7 +105,7 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @return BroadcasttClient
      */
-    public static function fromUri($uri)
+    public static function fromUri($uri): BroadcasttClient
     {
         if (!($uri instanceof UriInterface)) {
             $uri = new Uri($uri);
@@ -147,7 +147,7 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @return void
      */
-    private function log($msg, array $context = [], $level = LogLevel::INFO)
+    private function log(string $msg, array $context = [], string $level = LogLevel::INFO): void
     {
         if (is_null($this->logger)) {
             return;
@@ -163,7 +163,7 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @return void
      */
-    private function validateChannels($channels)
+    private function validateChannels(array $channels): void
     {
         if (count($channels) > 100) {
             throw new TooManyChannelsException('An event can be triggered on a maximum of 100 channels in a single call.');
@@ -181,7 +181,7 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @return void
      */
-    private function validateChannel($channel)
+    private function validateChannel(string $channel): void
     {
         if ($channel === null || !preg_match('/\A[-a-zA-Z0-9_=@,.;]+\z/', $channel)) {
             throw new InvalidChannelNameException('Invalid channel name ' . $channel);
@@ -193,7 +193,7 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @param string $socketId The socket ID to validate
      */
-    private function validateSocketId($socketId)
+    private function validateSocketId(?string $socketId): void
     {
         if ($socketId !== null && !preg_match('/\A\d+\.\d+\z/', $socketId)) {
             throw new InvalidSocketIdException('Invalid socket ID ' . $socketId);
@@ -210,7 +210,7 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @return Request
      */
-    private function buildRequest($domain, $path, $requestMethod = 'GET', $queryParams = [])
+    private function buildRequest(string $domain, string $path, string $requestMethod = 'GET', array $queryParams = []): Request
     {
         $path = strtr($path, ['{appId}' => $this->appId]);
 
@@ -238,7 +238,7 @@ class BroadcasttClient implements LoggerAwareInterface
      * @return ResponseInterface
      * @throws GuzzleException
      */
-    private function sendRequest($request)
+    private function sendRequest(RequestInterface $request): ResponseInterface
     {
         if ($this->guzzleClient === null) {
             $this->guzzleClient = new Client();
@@ -264,7 +264,7 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @return string
      */
-    private function buildUri()
+    private function buildUri(): string
     {
         if (preg_match('/^http[s]?\:\/\//', $this->host) !== 0) {
             throw new InvalidHostException("Invalid host value. Host must not start with http or https.");
@@ -276,11 +276,11 @@ class BroadcasttClient implements LoggerAwareInterface
     /**
      * Check if the status code indicates the request was successful.
      *
-     * @param $status
+     * @param int $status
      *
      * @return bool
      */
-    private function isSuccessStatusCode($status)
+    private function isSuccessStatusCode(int $status): bool
     {
         return 2 === (int)floor($status / 100);
     }
@@ -295,7 +295,7 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @return string
      */
-    public function buildAuthQueryString($requestMethod, $requestPath, $queryParams = [], $time = null)
+    public function buildAuthQueryString(string $requestMethod, string $requestPath, ?array $queryParams = [], $time = null): string
     {
         $params = [];
         $params['auth_key'] = $this->appKey;
@@ -324,7 +324,7 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @return string The imploded array
      */
-    public static function httpBuildQuery($array)
+    public static function httpBuildQuery($array): string
     {
         $string = [];
         foreach ($array as $key => $val) {
@@ -351,7 +351,7 @@ class BroadcasttClient implements LoggerAwareInterface
      * @throws GuzzleException
      * @throws JsonEncodeException on JSON encode failure.
      */
-    public function trigger($channels, $name, $data, $socketId = null, $jsonEncoded = false)
+    public function trigger($channels, string $name, $data, ?string $socketId = null, bool $jsonEncoded = false): bool
     {
         if (is_string($channels) === true) {
             $channels = [$channels];
@@ -394,7 +394,7 @@ class BroadcasttClient implements LoggerAwareInterface
      * @throws GuzzleException
      * @throws JsonEncodeException on JSON encode failure.
      */
-    public function triggerBatch($batch = [], $jsonEncoded = false)
+    public function triggerBatch(array $batch = [], bool $jsonEncoded = false): bool
     {
         foreach ($batch as $key => $event) {
             $this->validateChannel($event['channel'] ?? null);
@@ -435,7 +435,7 @@ class BroadcasttClient implements LoggerAwareInterface
      * @return ResponseInterface
      * @throws GuzzleException
      */
-    private function post($path, $queryParams = [], $postParams = [])
+    private function post(string $path, array $queryParams = [], array $postParams = []): ResponseInterface
     {
         $path = $this->basePath . $path;
 
@@ -459,7 +459,7 @@ class BroadcasttClient implements LoggerAwareInterface
      * @return ResponseInterface See Broadcastt API docs
      * @throws GuzzleException
      */
-    public function get($path, $queryParams = [])
+    public function get(string $path, $queryParams = []): ResponseInterface
     {
         $path = $this->basePath . $path;
 
@@ -482,7 +482,7 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @return string Json encoded authentication string.
      */
-    public function privateAuth($channel, $socketId, $customData = null)
+    public function privateAuth(string $channel, string $socketId, string $customData = null): string
     {
         $this->validateChannel($channel);
         $this->validateSocketId($socketId);
@@ -512,7 +512,7 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @return string
      */
-    public function presenceAuth($channel, $socketId, $userId, $userInfo = null)
+    public function presenceAuth(string $channel, string $socketId, string $userId, $userInfo = null): string
     {
         $userData = ['user_id' => $userId];
         if ($userInfo) {
@@ -527,7 +527,7 @@ class BroadcasttClient implements LoggerAwareInterface
      *
      * @param $cluster
      */
-    public function useCluster($cluster)
+    public function useCluster($cluster): void
     {
         $this->host = $cluster . self::$SLD;
     }
@@ -535,7 +535,7 @@ class BroadcasttClient implements LoggerAwareInterface
     /**
      * Short way to change `scheme` to `https` and `port` to `443`
      */
-    public function useTLS()
+    public function useTLS(): void
     {
         $this->scheme = 'https';
 
