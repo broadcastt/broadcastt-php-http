@@ -291,11 +291,11 @@ class BroadcasttClient implements LoggerAwareInterface
      * @param string $requestMethod
      * @param string $requestPath
      * @param array $queryParams [optional]
-     * @param null $time
+     * @param int|null $time
      *
      * @return string
      */
-    public function buildAuthQueryString(string $requestMethod, string $requestPath, ?array $queryParams = [], $time = null): string
+    public function buildAuthQueryString(string $requestMethod, string $requestPath, ?array $queryParams = [], ?int $time = null): string
     {
         $params = [];
         $params['auth_key'] = $this->appKey;
@@ -320,7 +320,7 @@ class BroadcasttClient implements LoggerAwareInterface
     /**
      * Generate URL-encoded query string in which nested elements are represented as comma-separated values.
      *
-     * @param array|string $array The array to implode
+     * @param string[] $array The array to implode
      *
      * @return string The imploded array
      */
@@ -454,7 +454,7 @@ class BroadcasttClient implements LoggerAwareInterface
      * All request signing is handled automatically.
      *
      * @param string $path Path excluding /apps/{appId}
-     * @param array $queryParams API query params (see https://broadcastt.xyz/docs/References-‐-Rest-API)
+     * @param array|string $queryParams API query params (see https://broadcastt.xyz/docs/References-‐-Rest-API)
      *
      * @return ResponseInterface See Broadcastt API docs
      * @throws GuzzleException
@@ -525,9 +525,9 @@ class BroadcasttClient implements LoggerAwareInterface
     /**
      * Modifies the `host` value for given cluster
      *
-     * @param $cluster
+     * @param string $cluster
      */
-    public function useCluster($cluster): void
+    public function useCluster(string $cluster): void
     {
         $this->host = $cluster . self::$SLD;
     }
