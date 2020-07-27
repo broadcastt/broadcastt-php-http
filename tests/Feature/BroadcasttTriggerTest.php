@@ -38,7 +38,7 @@ class BroadcasttTriggerTest extends TestCase
     {
         $this->logger = new TestLogger();
 
-        $this->client = new BroadcasttClient('testid', 'testkey', 'testsecret');
+        $this->client = new BroadcasttClient(1, 'testkey', 'testsecret');
         $this->client->setLogger($this->logger);
     }
 
@@ -92,7 +92,7 @@ class BroadcasttTriggerTest extends TestCase
         $this->assertEquals('http', $request->getUri()->getScheme());
         $this->assertEquals('eu.broadcastt.xyz', $request->getUri()->getHost());
         $this->assertEquals(null, $request->getUri()->getPort());
-        $this->assertEquals('/apps/testid/event', $request->getUri()->getPath());
+        $this->assertEquals('/apps/1/event', $request->getUri()->getPath());
         $this->assertEquals('application/json', $request->getHeader('Content-Type')[0]);
 
         $this->assertJsonStringEqualsJsonString($expectedBody, copy_to_string($request->getBody()));
@@ -136,7 +136,7 @@ class BroadcasttTriggerTest extends TestCase
         $this->assertEquals('http', $request->getUri()->getScheme());
         $this->assertEquals('eu.broadcastt.xyz', $request->getUri()->getHost());
         $this->assertEquals(null, $request->getUri()->getPort());
-        $this->assertEquals('/apps/testid/event', $request->getUri()->getPath());
+        $this->assertEquals('/apps/1/event', $request->getUri()->getPath());
         $this->assertEquals('application/json', $request->getHeader('Content-Type')[0]);
 
         $this->assertJsonStringEqualsJsonString($expectedBody, copy_to_string($request->getBody()));

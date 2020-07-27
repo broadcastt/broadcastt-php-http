@@ -21,7 +21,7 @@ class BroadcasttClientTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->client = new BroadcasttClient('testid', 'testkey', 'testsecret');
+        $this->client = new BroadcasttClient(1, 'testkey', 'testsecret');
     }
 
     public function testDefaultValuesAreCorrect()
@@ -43,7 +43,7 @@ class BroadcasttClientTest extends TestCase
         $this->assertEquals('https', $client->scheme);
         $this->assertEquals('testhost.xyz', $client->host);
         $this->assertEquals(8080, $client->port);
-        $this->assertEquals('111', $client->appId);
+        $this->assertEquals(111, $client->appId);
         $this->assertEquals('testkey', $client->appKey);
         $this->assertEquals('testsecret', $client->appSecret);
     }
@@ -55,7 +55,7 @@ class BroadcasttClientTest extends TestCase
         $this->assertEquals('https', $client->scheme);
         $this->assertEquals('testhost.xyz', $client->host);
         $this->assertEquals(8080, $client->port);
-        $this->assertEquals('111', $client->appId);
+        $this->assertEquals(111, $client->appId);
         $this->assertEquals('testkey', $client->appKey);
         $this->assertEquals('testsecret', $client->appSecret);
     }

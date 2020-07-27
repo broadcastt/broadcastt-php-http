@@ -32,11 +32,11 @@ class BroadcasttGetTest extends TestCase
     {
         $this->logger = new TestLogger();
 
-        $this->client = new BroadcasttClient('testid', 'testkey', 'testsecret');
+        $this->client = new BroadcasttClient(1, 'testkey', 'testsecret');
         $this->client->setLogger($this->logger);
     }
 
-    public function queryParamsProvider()
+    public function queryParamsProvider(): array
     {
         return [
             'Array' => [['test-param' => 'test-val']],
@@ -45,10 +45,11 @@ class BroadcasttGetTest extends TestCase
     }
 
     /**
+     * @param $queryParams
      * @throws GuzzleException
      * @dataProvider queryParamsProvider
      */
-    public function testCanGet($queryParams)
+    public function testCanGet($queryParams): void
     {
         $mockHandler = new MockHandler([
             new Response(200, [], '{}'),
@@ -78,7 +79,7 @@ class BroadcasttGetTest extends TestCase
         $this->assertEquals('http', $request->getUri()->getScheme());
         $this->assertEquals('eu.broadcastt.xyz', $request->getUri()->getHost());
         $this->assertEquals(null, $request->getUri()->getPort());
-        $this->assertEquals('/apps/testid/test/path', $request->getUri()->getPath());
+        $this->assertEquals('/apps/1/test/path', $request->getUri()->getPath());
         $this->assertEquals('application/json', $request->getHeader('Content-Type')[0]);
 
         $this->assertRegExp('/^'
