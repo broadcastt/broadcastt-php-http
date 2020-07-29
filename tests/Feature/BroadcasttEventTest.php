@@ -3,24 +3,24 @@
 namespace Tests\Feature;
 
 use Broadcastt\BroadcasttClient;
+use Broadcastt\Exception\InvalidHostException;
 use Broadcastt\Exception\InvalidSocketIdException;
 use Broadcastt\Exception\JsonEncodeException;
 use Broadcastt\Exception\TooManyChannelsException;
-use Broadcastt\Exception\InvalidHostException;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
-use function GuzzleHttp\Psr7\copy_to_string;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\Test\TestLogger;
 use Tests\InvalidDataProviders;
+use function GuzzleHttp\Psr7\copy_to_string;
 
-class BroadcasttTriggerTest extends TestCase
+class BroadcasttEventTest extends TestCase
 {
     use InvalidDataProviders;
 
@@ -46,11 +46,11 @@ class BroadcasttTriggerTest extends TestCase
     {
         return [
             'String' => [
-                'trigger_string_request_body.golden',
+                'event_string_request_body.golden',
                 'test-data'
             ],
             'Hash' => [
-                'trigger_hash_request_body.golden',
+                'event_hash_request_body.golden',
                 ['test-key' => 'test-val'],
             ],
         ];
@@ -61,7 +61,7 @@ class BroadcasttTriggerTest extends TestCase
      * @param $channelData
      * @dataProvider channelDataProvider
      */
-    public function testCanTriggerData($goldenBody, $channelData)
+    public function testCanEventData($goldenBody, $channelData)
     {
         $expectedBody = file_get_contents(__DIR__ . '/testdata/' . $goldenBody);
 
@@ -82,7 +82,7 @@ class BroadcasttTriggerTest extends TestCase
 
         $this->client->setGuzzleClient($guzzleClient);
 
-        $response = $this->client->trigger('test-channel', 'test-event', $channelData);
+        $response = $this->client->event('test-channel', 'test-event', $channelData);
         $this->assertTrue($response);
 
         $this->assertCount(1, $container);
@@ -105,9 +105,9 @@ class BroadcasttTriggerTest extends TestCase
             . '$/', $request->getUri()->getQuery());
     }
 
-    public function testCanTriggerWithSocketId()
+    public function testCanEventWithSocketId()
     {
-        $expectedBody = file_get_contents(__DIR__ . '/testdata/trigger_with_socket_id_request_body.golden');
+        $expectedBody = file_get_contents(__DIR__ . '/testdata/event_with_socket_id_request_body.golden');
 
         $mockHandler = new MockHandler([
             new Response(200, [], '{}'),
@@ -126,7 +126,7 @@ class BroadcasttTriggerTest extends TestCase
 
         $this->client->setGuzzleClient($guzzleClient);
 
-        $response = $this->client->trigger('test-channel', 'test-event', 'test-data', '1.1');
+        $response = $this->client->event('test-channel', 'test-event', 'test-data', '1.1');
         $this->assertTrue($response);
 
         $this->assertCount(1, $container);
@@ -154,7 +154,7 @@ class BroadcasttTriggerTest extends TestCase
      * @dataProvider invalidChannelProvider
      * @dataProvider invalidChannelsProvider
      */
-    public function testCanNotTriggerWithInvalidChannel($invalidChannel)
+    public function testCanNotEventWithInvalidChannel($invalidChannel)
     {
         $mockHandler = new MockHandler();
 
@@ -167,10 +167,10 @@ class BroadcasttTriggerTest extends TestCase
         $this->client->setGuzzleClient($guzzleClient);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->client->trigger($invalidChannel, 'test-event', '');
+        $this->client->event($invalidChannel, 'test-event', '');
     }
 
-    public function testCanNotTriggerWithMoreThanHundredChannel()
+    public function testCanNotEventWithMoreThanHundredChannel()
     {
         $mockHandler = new MockHandler();
 
@@ -187,14 +187,14 @@ class BroadcasttTriggerTest extends TestCase
             $channels[] = 'test-channel' . $i;
         }
         $this->expectException(TooManyChannelsException::class);
-        $this->client->trigger($channels, 'test-event', '');
+        $this->client->event($channels, 'test-event', '');
     }
 
     /**
      * @param $invalidSocketId
      * @dataProvider invalidSocketIdProvider
      */
-    public function testCanNotTriggerWithInvalidSocketId($invalidSocketId)
+    public function testCanNotEventWithInvalidSocketId($invalidSocketId)
     {
         $mockHandler = new MockHandler();
 
@@ -207,10 +207,10 @@ class BroadcasttTriggerTest extends TestCase
         $this->client->setGuzzleClient($guzzleClient);
 
         $this->expectException(InvalidSocketIdException::class);
-        $this->client->trigger('test-channel', 'test-event', '', $invalidSocketId);
+        $this->client->event('test-channel', 'test-event', '', $invalidSocketId);
     }
 
-    public function testCanNotTriggerWithInvalidHost()
+    public function testCanNotEventWithInvalidHost()
     {
         $mockHandler = new MockHandler();
 
@@ -224,10 +224,10 @@ class BroadcasttTriggerTest extends TestCase
         $this->client->host = 'http://test.xyz';
 
         $this->expectException(InvalidHostException::class);
-        $this->client->trigger('test-channel', 'test-event', '');
+        $this->client->event('test-channel', 'test-event', '');
     }
 
-    public function testCanTriggerThrowExceptionOnPayloadTooLargeResponse()
+    public function testCanEventThrowExceptionOnPayloadTooLargeResponse()
     {
         $mockHandler = new MockHandler([
             new Response(413, [], '{}'),
@@ -247,10 +247,10 @@ class BroadcasttTriggerTest extends TestCase
         $this->client->setGuzzleClient($guzzleClient);
 
         $this->expectException(GuzzleException::class);
-        $this->client->trigger('test-channel', 'test-event', '');
+        $this->client->event('test-channel', 'test-event', '');
     }
 
-    public function testCanTriggerHandlePayloadTooLargeResponseWhenGuzzleExceptionsAreDisabled()
+    public function testCanEventHandlePayloadTooLargeResponseWhenGuzzleExceptionsAreDisabled()
     {
         $mockHandler = new MockHandler([
             new Response(413, [], '{}'),
@@ -270,18 +270,18 @@ class BroadcasttTriggerTest extends TestCase
 
         $this->client->setGuzzleClient($guzzleClient);
 
-        $response = $this->client->trigger('test-channel', 'test-event', '');
+        $response = $this->client->event('test-channel', 'test-event', '');
         $this->assertFalse($response);
     }
 
-    public function testCanTriggerThrowExceptionOnJsonEncodeFailure()
+    public function testCanEventThrowExceptionOnJsonEncodeFailure()
     {
         // data from https://www.php.net/manual/en/function.json-last-error.php
         $data = "\xB1\x31";
 
         $this->expectException(JsonEncodeException::class);
         try {
-            $this->client->trigger('test-channel', 'test-event', $data);
+            $this->client->event('test-channel', 'test-event', $data);
         } catch (JsonEncodeException $e) {
             $this->assertEquals($e->getData(), $data);
             throw $e;

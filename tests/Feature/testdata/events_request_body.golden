@@ -1,0 +1,1 @@
+{"events":[{"channel":"test-channel","name":"test-event","data":"{\"test-key\":\"test-val\"}"},{"channel":"test-channel2","name":"test-event2","data":"{\"test-key\":\"test-val2\"}"}]}
