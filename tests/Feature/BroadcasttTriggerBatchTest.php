@@ -13,14 +13,14 @@ use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
-use function GuzzleHttp\Psr7\copy_to_string;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\Test\TestLogger;
 use Tests\InvalidDataProviders;
+use function GuzzleHttp\Psr7\copy_to_string;
 
-class BroadcasttTriggerBatchTest extends TestCase
+class BroadcasttEventsTest extends TestCase
 {
     use InvalidDataProviders;
 
@@ -42,9 +42,9 @@ class BroadcasttTriggerBatchTest extends TestCase
         $this->client->setLogger($this->logger);
     }
 
-    public function testCanTriggerBatch(): void
+    public function testCanEvents(): void
     {
-        $expectedBody = file_get_contents(__DIR__ . '/testdata/triggerBatch_request_body.golden');
+        $expectedBody = file_get_contents(__DIR__ . '/testdata/events_request_body.golden');
 
         $mockHandler = new MockHandler([
             new Response(200, [], '{}'),
@@ -66,7 +66,7 @@ class BroadcasttTriggerBatchTest extends TestCase
         $batch = [];
         $batch[] = ['channel' => 'test-channel', 'name' => 'test-event', 'data' => ['test-key' => 'test-val']];
         $batch[] = ['channel' => 'test-channel2', 'name' => 'test-event2', 'data' => ['test-key' => 'test-val2']];
-        $response = $this->client->triggerBatch($batch);
+        $response = $this->client->events($batch);
         $this->assertTrue($response);
 
         $this->assertCount(1, $container);
@@ -94,7 +94,7 @@ class BroadcasttTriggerBatchTest extends TestCase
      * @dataProvider invalidChannelProvider
      * @throws GuzzleException
      */
-    public function testCanNotTriggerBatchWithInvalidChannel($invalidChannel): void
+    public function testCanNotEventsWithInvalidChannel($invalidChannel): void
     {
         $mockHandler = new MockHandler();
 
@@ -110,7 +110,7 @@ class BroadcasttTriggerBatchTest extends TestCase
 
         $batch = [];
         $batch[] = ['channel' => $invalidChannel, 'name' => 'test-event', 'data' => ['test-key' => 'test-val']];
-        $this->client->triggerBatch($batch);
+        $this->client->events($batch);
     }
 
     /**
@@ -118,7 +118,7 @@ class BroadcasttTriggerBatchTest extends TestCase
      * @dataProvider invalidSocketIdProvider
      * @throws GuzzleException
      */
-    public function testCanNotTriggerBatchWithInvalidSocketId($invalidSocketId): void
+    public function testCanNotEventsWithInvalidSocketId($invalidSocketId): void
     {
         $mockHandler = new MockHandler();
 
@@ -139,13 +139,13 @@ class BroadcasttTriggerBatchTest extends TestCase
             'data' => ['test-key' => 'test-val'],
             'socket_id' => $invalidSocketId
         ];
-        $this->client->triggerBatch($batch);
+        $this->client->events($batch);
     }
 
     /**
      * @dataProvider invalidSocketIdProvider
      */
-    public function testCanNotTriggerBatchWithInvalidData(): void
+    public function testCanNotEventsWithInvalidData(): void
     {
         $mockHandler = new MockHandler();
 
@@ -161,10 +161,10 @@ class BroadcasttTriggerBatchTest extends TestCase
 
         $batch = [];
         $batch[] = ['channel' => 'test-channel', 'name' => 'test-event'];
-        $this->client->triggerBatch($batch);
+        $this->client->events($batch);
     }
 
-    public function testCanNotTriggerBatchWithInvalidHost(): void
+    public function testCanNotEventsWithInvalidHost(): void
     {
         $mockHandler = new MockHandler();
 
@@ -181,10 +181,10 @@ class BroadcasttTriggerBatchTest extends TestCase
 
         $batch = [];
         $batch[] = ['channel' => 'test-channel', 'name' => 'test-event', 'data' => ['test-key' => 'test-val']];
-        $this->client->triggerBatch($batch);
+        $this->client->events($batch);
     }
 
-    public function testCanTriggerBatchThrowExceptionOnPayloadTooLargeResponse(): void
+    public function testCanEventsThrowExceptionOnPayloadTooLargeResponse(): void
     {
         $mockHandler = new MockHandler([
             new Response(413, [], '{}'),
@@ -207,10 +207,10 @@ class BroadcasttTriggerBatchTest extends TestCase
         $batch[] = ['channel' => 'test-channel', 'name' => 'test-event', 'data' => ['test-key' => 'test-val']];
         $batch[] = ['channel' => 'test-channel2', 'name' => 'test-event2', 'data' => ['test-key' => 'test-val2']];
         $this->expectException(GuzzleException::class);
-        $this->client->triggerBatch($batch);
+        $this->client->events($batch);
     }
 
-    public function testCanTriggerBatchHandlePayloadTooLargeResponseWhenGuzzleExceptionsAreDisabled()
+    public function testCanEventsHandlePayloadTooLargeResponseWhenGuzzleExceptionsAreDisabled()
     {
         $mockHandler = new MockHandler([
             new Response(413, [], '{}'),
@@ -233,11 +233,11 @@ class BroadcasttTriggerBatchTest extends TestCase
         $batch = [];
         $batch[] = ['channel' => 'test-channel', 'name' => 'test-event', 'data' => ['test-key' => 'test-val']];
         $batch[] = ['channel' => 'test-channel2', 'name' => 'test-event2', 'data' => ['test-key' => 'test-val2']];
-        $response = $this->client->triggerBatch($batch);
+        $response = $this->client->events($batch);
         $this->assertFalse($response);
     }
 
-    public function testCanTriggerBatchThrowExceptionOnJsonEncodeFailure()
+    public function testCanEventsThrowExceptionOnJsonEncodeFailure()
     {
         // data from https://www.php.net/manual/en/function.json-last-error.php
         $data = "\xB1\x31";
@@ -246,7 +246,7 @@ class BroadcasttTriggerBatchTest extends TestCase
         $batch[] = ['channel' => 'test-channel', 'name' => 'test-event', 'data' => $data];
         $this->expectException(JsonEncodeException::class);
         try {
-            $this->client->triggerBatch($batch);
+            $this->client->events($batch);
         } catch (JsonEncodeException $e) {
             $this->assertEquals($e->getData(), $data);
             throw $e;

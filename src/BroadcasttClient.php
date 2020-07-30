@@ -351,7 +351,7 @@ class BroadcasttClient implements LoggerAwareInterface
      * @throws GuzzleException
      * @throws JsonEncodeException on JSON encode failure.
      */
-    public function trigger($channels, string $name, $data, ?string $socketId = null, bool $jsonEncoded = false): bool
+    public function event($channels, string $name, $data, ?string $socketId = null, bool $jsonEncoded = false): bool
     {
         if (is_string($channels) === true) {
             $channels = [$channels];
@@ -394,7 +394,7 @@ class BroadcasttClient implements LoggerAwareInterface
      * @throws GuzzleException
      * @throws JsonEncodeException on JSON encode failure.
      */
-    public function triggerBatch(array $batch = [], bool $jsonEncoded = false): bool
+    public function events(array $batch = [], bool $jsonEncoded = false): bool
     {
         foreach ($batch as $key => $event) {
             $this->validateChannel($event['channel'] ?? null);
@@ -416,10 +416,7 @@ class BroadcasttClient implements LoggerAwareInterface
             }
         }
 
-        $postParams = [];
-        $postParams['batch'] = $batch;
-
-        $response = $this->post('/events', [], $postParams);
+        $response = $this->post('/events', [], $batch);
 
         return $this->isSuccessStatusCode($response->getStatusCode());
     }
