@@ -387,16 +387,16 @@ class BroadcasttClient implements LoggerAwareInterface
     /**
      * Trigger multiple events at the same time.
      *
-     * @param array $events [optional] An array of events to send
+     * @param array $batch [optional] An array of events to send
      * @param bool $jsonEncoded [optional] Defines if the data is already encoded
      *
      * @return bool
      * @throws GuzzleException
      * @throws JsonEncodeException on JSON encode failure.
      */
-    public function events(array $events = [], bool $jsonEncoded = false): bool
+    public function events(array $batch = [], bool $jsonEncoded = false): bool
     {
-        foreach ($events as $key => $event) {
+        foreach ($batch as $key => $event) {
             $this->validateChannel($event['channel'] ?? null);
             $this->validateSocketId($event['socket_id'] ?? null);
 
@@ -412,14 +412,11 @@ class BroadcasttClient implements LoggerAwareInterface
                     throw new JsonEncodeException($event['data'], json_last_error_msg(), json_last_error());
                 }
 
-                $events[$key]['data'] = $jsonData;
+                $batch[$key]['data'] = $jsonData;
             }
         }
 
-        $postParams = [];
-        $postParams['events'] = $events;
-
-        $response = $this->post('/events', [], $postParams);
+        $response = $this->post('/events', [], $batch);
 
         return $this->isSuccessStatusCode($response->getStatusCode());
     }
