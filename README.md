@@ -125,17 +125,17 @@ Short way to change `scheme` to `https` and `port` to `443`
 
 ### Usage
 
-#### `trigger($channels, $name, $data, $socketId = null, $jsonEncoded = false)`
+#### `event($channels, $name, $data, $socketId = null, $jsonEncoded = false)`
 
 Trigger an event by providing event name and payload.
 
 Optionally provide a socket ID to exclude a client (most likely the sender).
 
-#### `triggerBatch($batch = [], $encoded = false)`
+#### `events($batch = [], $jsonEncoded = false)`
 
 Trigger multiple events at the same time.
 
-#### `get($path, $params = [])`
+#### `get($path, $queryParams = [])`
 
 GET arbitrary REST API resource using a synchronous http client.
 
