@@ -80,7 +80,7 @@ class BroadcasttTriggerBatchTest extends TestCase
         $this->assertEquals('application/json', $request->getHeader('Content-Type')[0]);
 
         $this->assertJsonStringEqualsJsonString($expectedBody, copy_to_string($request->getBody()));
-        $this->assertRegExp('/^'
+        $this->assertMatchesRegularExpression('/^'
             . 'auth_key=testkey'
             . '&auth_signature=\w+'
             . '&auth_timestamp=\d+'

@@ -81,7 +81,7 @@ class BroadcasttGetTest extends TestCase
         $this->assertEquals('/apps/testid/test/path', $request->getUri()->getPath());
         $this->assertEquals('application/json', $request->getHeader('Content-Type')[0]);
 
-        $this->assertRegExp('/^'
+        $this->assertMatchesRegularExpression('/^'
             . 'auth_key=testkey'
             . '&auth_signature=\w+'
             . '&auth_timestamp=\d+'
