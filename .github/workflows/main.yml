@@ -13,13 +13,12 @@ jobs:
     name: PHP ${{ matrix.php }} - ${{ matrix.dependecies }}
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         php:
-          - '7.1'
-          - '7.2'
           - '7.3'
           - '7.4'
+          - '8.0'
         dependecies:
           - 'stable'
           - 'lowest'
@@ -44,9 +43,11 @@ jobs:
         run: composer update --prefer-${{ matrix.dependecies }} --prefer-dist --no-interaction --no-suggest
 
       - name: Run test
+        env:
+          XDEBUG_MODE: coverage
         run: ./vendor/bin/phpunit --coverage-clover ./coverage.xml
 
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v1.0.15
         with:
           flags: unittests
           fail_ci_if_error: true
