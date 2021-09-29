@@ -139,7 +139,7 @@ class BroadcasttTriggerTest extends TestCase
         $this->assertEquals('/apps/testid/event', $request->getUri()->getPath());
         $this->assertEquals('application/json', $request->getHeader('Content-Type')[0]);
 
-        $this->assertJsonStringEqualsJsonString($expectedBody, copy_to_string($request->getBody()));
+        $this->assertJsonStringEqualsJsonString($expectedBody, Utils::copyToString($request->getBody()));
         $this->assertMatchesRegularExpression('/^'
             . 'auth_key=testkey'
             . '&auth_signature=\w+'
