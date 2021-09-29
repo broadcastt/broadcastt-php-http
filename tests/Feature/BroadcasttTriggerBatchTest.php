@@ -13,9 +13,9 @@ use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
-use function GuzzleHttp\Psr7\copy_to_string;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+use GuzzleHttp\Psr7\Utils;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\Test\TestLogger;
 use Tests\InvalidDataProviders;
@@ -79,7 +79,7 @@ class BroadcasttTriggerBatchTest extends TestCase
         $this->assertEquals('/apps/testid/events', $request->getUri()->getPath());
         $this->assertEquals('application/json', $request->getHeader('Content-Type')[0]);
 
-        $this->assertJsonStringEqualsJsonString($expectedBody, copy_to_string($request->getBody()));
+        $this->assertJsonStringEqualsJsonString($expectedBody, Utils::copyToString($request->getBody()));
         $this->assertMatchesRegularExpression('/^'
             . 'auth_key=testkey'
             . '&auth_signature=\w+'

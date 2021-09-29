@@ -14,13 +14,13 @@ use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Uri;
+use GuzzleHttp\Psr7\Utils;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LogLevel;
-use function GuzzleHttp\Psr7\stream_for;
 
 /**
  * Class BroadcasttClient
@@ -444,7 +444,7 @@ class BroadcasttClient implements LoggerAwareInterface
         $queryParams['body_md5'] = md5($postValue);
 
         $request = $this->buildRequest($this->buildUri(), $path, 'POST', $queryParams)
-            ->withBody(stream_for($postValue));
+            ->withBody(Utils::streamFor($postValue));
 
         return $this->sendRequest($request);
     }
