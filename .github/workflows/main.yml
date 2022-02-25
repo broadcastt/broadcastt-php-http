@@ -19,6 +19,7 @@ jobs:
           - '7.3'
           - '7.4'
           - '8.0'
+          - '8.1'
         dependecies:
           - 'stable'
           - 'lowest'
@@ -47,7 +48,7 @@ jobs:
           XDEBUG_MODE: coverage
         run: ./vendor/bin/phpunit --coverage-clover ./coverage.xml
 
-      - uses: codecov/codecov-action@v1.0.15
+      - uses: codecov/codecov-action@v2
         with:
           flags: unittests
           fail_ci_if_error: true
