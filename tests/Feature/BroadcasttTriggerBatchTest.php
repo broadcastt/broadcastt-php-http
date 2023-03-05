@@ -17,17 +17,11 @@ use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use GuzzleHttp\Psr7\Utils;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\Test\TestLogger;
 use Tests\InvalidDataProviders;
 
 class BroadcasttTriggerBatchTest extends TestCase
 {
     use InvalidDataProviders;
-
-    /**
-     * @var TestLogger
-     */
-    private $logger;
 
     /**
      * @var BroadcasttClient
@@ -36,10 +30,7 @@ class BroadcasttTriggerBatchTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->logger = new TestLogger();
-
         $this->client = new BroadcasttClient('testid', 'testkey', 'testsecret');
-        $this->client->setLogger($this->logger);
     }
 
     public function testCanTriggerBatch()

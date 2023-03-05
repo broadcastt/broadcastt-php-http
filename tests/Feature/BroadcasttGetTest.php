@@ -11,17 +11,11 @@ use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\Test\TestLogger;
 use Tests\InvalidDataProviders;
 
 class BroadcasttGetTest extends TestCase
 {
     use InvalidDataProviders;
-
-    /**
-     * @var TestLogger
-     */
-    private $logger;
 
     /**
      * @var BroadcasttClient
@@ -30,10 +24,7 @@ class BroadcasttGetTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->logger = new TestLogger();
-
         $this->client = new BroadcasttClient('testid', 'testkey', 'testsecret');
-        $this->client->setLogger($this->logger);
     }
 
     public function queryParamsProvider()

@@ -17,17 +17,11 @@ use GuzzleHttp\Psr7\Response;
 use GuzzleHttp\Psr7\Utils;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\Test\TestLogger;
 use Tests\InvalidDataProviders;
 
 class BroadcasttTriggerTest extends TestCase
 {
     use InvalidDataProviders;
-
-    /**
-     * @var TestLogger
-     */
-    private $logger;
 
     /**
      * @var BroadcasttClient
@@ -36,10 +30,7 @@ class BroadcasttTriggerTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->logger = new TestLogger();
-
         $this->client = new BroadcasttClient('testid', 'testkey', 'testsecret');
-        $this->client->setLogger($this->logger);
     }
 
     public function channelDataProvider()
